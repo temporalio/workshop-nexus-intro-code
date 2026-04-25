@@ -216,3 +216,22 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Java
+target/
+*.class
+*.jar
+.idea/
+.classpath
+.project
+.settings/
+
+# Editor / OS
+.DS_Store
+.vscode/
+*.swp
+*.swo
+
+# Workshop scratch
+commit-msg.md
+
