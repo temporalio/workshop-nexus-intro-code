@@ -33,16 +33,17 @@ public class ComplianceWorkflowImpl implements ComplianceWorkflow {
         // Step 1: Run automated compliance check
         autoResult = complianceActivity.checkCompliance(request);
 
-        // Durable delay — demonstrates Nexus + Temporal durability.
-        // Kill the compliance worker mid-sleep, restart it, and the workflow resumes automatically.
-        Workflow.sleep(Duration.ofSeconds(10));
-
         // Step 2: LOW or HIGH risk → return immediately
         if (!"MEDIUM".equals(autoResult.getRiskLevel())) {
             return autoResult;
         }
 
-        // Step 3: MEDIUM risk → wait for human review via Update
+        // Step 3: MEDIUM risk → sleep then wait for human review via Update.
+        // The sleep here demonstrates Nexus + Temporal durability: kill the
+        // compliance worker mid-sleep, restart it, and the workflow resumes
+        // automatically. The await below is also durable, so cancellation and
+        // reviewer Updates flow through correctly even across worker restarts.
+        Workflow.sleep(Duration.ofSeconds(10));
         Workflow.await(() -> reviewResult != null);
         return reviewResult;
     }

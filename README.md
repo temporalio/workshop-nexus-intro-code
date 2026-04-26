@@ -12,18 +12,21 @@ workshop-nexus-intro-code/
 │   ├── 02_service_contract/    Ch 2: Define the Nexus Service contract
 │   ├── 03_sync_handler/        Ch 3: Sync handler + Worker wiring + Endpoint
 │   ├── 04_caller_swap/         Ch 4: Calling Nexus from a caller Workflow
-│   ├── 05_async_operations/    Ch 5: Async Operations + Updates
-│   └── 06_lifecycle/           Ch 6: Cancellation, errors, circuit breaker
+│   ├── 05_async_operations/    Ch 5: Async (workflow-backed) Nexus operations
+│   ├── 06_updates/             Ch 6: Updates through Nexus (human-in-the-loop)
+│   └── 07_lifecycle/           Ch 7: Cancellation, errors, circuit breaker
 └── polyglot/
     └── java-legacy/            Java compliance worker for the polyglot connector demo
 ```
 
-Each chapter directory under `exercises/` contains:
+Each chapter directory under `exercises/` (from Chapter 2 onward) contains:
 
 - `exercise/` - starting state for the chapter. Attendees fill in the TODOs.
 - `solution/` - reference state with the chapter's TODOs completed.
 
-The `solution/` of one chapter equals the `exercise/` of the next. Each chapter is self-contained: an attendee can `uv sync` and run a single chapter's `exercise/` directory in isolation.
+Each chapter's `exercise/` is self-contained: an attendee can `uv sync` and run a single chapter's `exercise/` directory in isolation. In Chapters 2-4, `exercise/` is the previous chapter's `solution/` with new TODO callouts; in Chapters 5-7, `exercise/` may also include skeleton files (e.g. an empty `compliance/workflows.py` with a `NotImplementedError` body) that the chapter's TODOs ask the attendee to fill in.
+
+Chapter 1 has no TODOs (the goal is to run the monolith and observe it), so it ships only a `solution/` directory. Pick up the `exercise/` + `solution/` pattern from Chapter 2 onward.
 
 ## Prerequisites
 
@@ -44,40 +47,37 @@ This creates a single `.venv/` at the root that all chapter snapshots share (the
 From inside any `<chapter>/exercise/` or `<chapter>/solution/` directory:
 
 ```bash
-uv run python -m payments.temporal.worker
-uv run python -m compliance.temporal.worker
-uv run python -m payments.temporal.starter
+uv run python -m payments.worker
+uv run python -m compliance.worker
+uv run python -m payments.starter
 ```
 
 `uv run` walks up the directory tree to find the root `pyproject.toml` and uses the root `.venv`. Each chapter's `payments/`, `compliance/`, and `shared/` packages are picked up from the chapter's working directory automatically.
 
 Open one terminal per worker and per starter. See the workshop content repo for chapter-specific run instructions.
 
-### Common Temporal setup (one-time, before any chapter)
+### Temporal dev server (one-time, before any chapter)
 
 ```bash
 temporal server start-dev
-
-temporal operator namespace create --namespace payments-namespace
-temporal operator namespace create --namespace compliance-namespace
-
-temporal operator nexus endpoint create \
-  --name compliance-endpoint \
-  --target-namespace compliance-namespace \
-  --target-task-queue compliance-risk
 ```
 
-The Web UI is at http://localhost:8233.
+The Web UI is at http://localhost:8233. The dev server creates a `default` namespace automatically; that is all Chapter 1 needs. The split namespaces (`payments-namespace`, `compliance-namespace`) and the `compliance-endpoint` Nexus endpoint are created interactively in **Chapter 2**, alongside the contract that uses them - see `exercises/02_service_contract/README.md` Parts D and E.
 
-## Polyglot (Java legacy worker)
+## Polyglot (Java compliance worker)
 
-`polyglot/java-legacy/` is a pre-built Java compliance worker used as the polyglot connector demo at the end of the workshop. The Python caller workflow (from Chapter 4 onward) hits this Java handler instead of the Python one. Same Nexus Service contract. Different language. No code change in Python.
+`polyglot/java-legacy/` is a pre-built Java **compliance** worker used as the polyglot connector demo at the end of the workshop. It contains only the compliance side - the Java equivalent of the Python `compliance/` package, plus the Java `ComplianceNexusService` interface for wire compatibility. The Python `payments` worker, starter, and caller workflows on the Python side are unchanged; the Java handler simply replaces the Python handler at the same Nexus endpoint.
+
+From Chapter 5 onward (where the Python compliance handler is `@nexus.workflow_run_operation`), the Python caller workflow hits this Java handler instead of the Python one. Same Nexus Service contract. Different language. No code change in Python. The Event History on the caller side looks identical to the pure-Python Ch 5/6/7 run - three Nexus events (`Scheduled`, `Started`, `Completed`) - and a `compliance-TXN-*` workflow runs on the Compliance side, just authored in Java.
+
+> The polyglot demo is intended to be run against Ch 5, 6, or 7. It also works against Ch 4, but the event shape will differ from pure-Python Ch 4: the Java handler is always async (workflow-backed), so the caller history will show three Nexus events and a workflow will appear in `compliance-namespace`. Pure-Python Ch 4 has a sync handler with two events and no compliance-side workflow.
 
 ### Prerequisites
 
 - Java 11 or later
 - Maven 3.6+
-- The Temporal dev server, namespaces, and `compliance-endpoint` from the common Temporal setup above. The Java worker uses the same `compliance-namespace` and `compliance-risk` task queue that the Python compliance worker uses, so only one of them should be running at a time.
+- The Temporal dev server, namespaces, and `compliance-endpoint` from the common Temporal setup above.
+- **Stop the Python compliance worker before running the Java one.** Workers from different SDKs cannot safely share a workflow task queue: workflow histories produced by different SDKs are not interchangeable. The Java worker uses the same `compliance-namespace` and `compliance-risk` task queue that the Python compliance worker uses, so only one of them may be running at a time.
 
 ### Build and run
 
@@ -85,10 +85,10 @@ From `polyglot/java-legacy/`:
 
 ```bash
 mvn compile
-mvn -q exec:java@compliance-worker
+mvn -q exec:java
 ```
 
-The `@compliance-worker` suffix selects the named execution defined in `pom.xml` (the default mainClass is the Payments worker, which is not what you want for the polyglot demo). The worker starts, connects to `compliance-namespace`, and polls the `compliance-risk` task queue. You should see:
+`exec:java` runs the default main class declared in `pom.xml`, which is `compliance.temporal.ComplianceWorkerApp`. The worker connects to `compliance-namespace` and polls the `compliance-risk` task queue. You should see:
 
 ```
 Compliance Worker started on: compliance-risk
@@ -96,11 +96,11 @@ Compliance Worker started on: compliance-risk
 
 ### Demo flow
 
-1. Stop the Python compliance worker if it is running. Both workers cannot poll the same task queue safely.
+1. Confirm the Python compliance worker is stopped. Both workers cannot poll the same task queue safely (see Prerequisites above).
 2. Start the Java worker as above. Confirm it is the only poller on `compliance-risk` with `temporal task-queue describe --task-queue compliance-risk -n compliance-namespace`.
-3. Start the Python payments worker from any chapter that uses Nexus (Ch 4 or later).
-4. Run the Python starter: `uv run python -m payments.temporal.starter` from the same chapter directory.
-5. Watch the Web UI. The Python `payment-TXN-A` workflow shows the same Nexus events as before, but `compliance-TXN-A` in `compliance-namespace` is now a Java workflow.
+3. Start the Python payments worker from Ch 5, 6, or 7 (`uv run python -m payments.worker`).
+4. Run the Python starter: `uv run python -m payments.starter` from the same chapter directory.
+5. Watch the Web UI. The Python `payment-TXN-A` workflow shows the same Nexus event sequence as the pure-Python Ch 5/6/7 run - `Scheduled`, `Started`, `Completed` - but `compliance-TXN-A` in `compliance-namespace` is now a Java workflow.
 
 ### How Java interoperates with the Python contract
 
@@ -112,21 +112,27 @@ The Java service contract uses explicit annotations to align with Python's snake
 
 These annotations are the polyglot tax: when one side speaks snake_case and the other speaks camelCase, one of them needs explicit overrides. We chose Java since the Python contract stays idiomatic.
 
-## Chapter 5 highlights
+## Chapters 5 and 6 highlights
 
 Chapter 5 introduces the workflow-backed compliance check. Going from `solution/` of Ch 4 to `solution/` of Ch 5 the learner:
 
 - Converts `check_compliance` from `@nexusrpc.handler.sync_operation` to `@nexus.workflow_run_operation` so it can run for longer than the 10-second sync deadline.
-- Adds a new `compliance/temporal/workflows.py` containing `ComplianceWorkflow`, which combines the rule-based check with a `workflow.update` for human-in-the-loop review on MEDIUM-risk transactions.
-- Replaces the `submit_review` `NotImplementedError` stub with a real sync handler that uses the Temporal Client to send the review Update to the running `ComplianceWorkflow`.
+- Adds a new `compliance/workflows.py` containing `ComplianceWorkflow`, which runs the rule-based check as an activity and returns the result.
 - Updates the Compliance worker to register `ComplianceWorkflow` and the `check_compliance` activity alongside the Nexus service handler.
-- Adds `ReviewCallerWorkflow` on the Payments side and a `review_starter.py` that submits review decisions through Nexus.
-- Configures `schedule_to_close_timeout`, `schedule_to_start_timeout`, and `start_to_close_timeout` on the caller's Nexus call to bound how long the operation can wait at each stage of its lifecycle.
+- Configures `schedule_to_start_timeout` and `start_to_close_timeout` on the caller's Nexus call to bound how long the operation can wait at each stage of its lifecycle (the `schedule_to_close_timeout` was set in Ch 4).
 
-After Ch 5, MEDIUM-risk TXN-B blocks until a reviewer submits a decision (run `python -m payments.temporal.review_starter`). LOW and HIGH transactions still complete or decline automatically.
+After Ch 5 all three transactions still resolve automatically: LOW completes, MEDIUM auto-approves with the AML monitoring note, HIGH declines.
+
+Chapter 6 layers human-in-the-loop review on top:
+
+- Adds `@workflow.update review` (and its validator) plus the `sleep` + `wait_condition` MEDIUM-risk branch to `ComplianceWorkflow`.
+- Replaces the `submit_review` `NotImplementedError` stub with a real sync handler that uses the Temporal Client to send the review Update to the running `ComplianceWorkflow`.
+- Adds `ReviewCallerWorkflow` on the Payments side and a `review_starter.py` that submits review decisions through Nexus.
+
+After Ch 6, MEDIUM-risk TXN-B blocks until a reviewer submits a decision (run `python -m payments.review_starter`). LOW and HIGH transactions still complete or decline automatically.
 
 ## Provenance
 
-The Python code under `01_run_monolith/` through `04_caller_swap/` is derived from the [`edu-nexus-code`](https://github.com/temporalio/edu-nexus-code) Python port of the [Decoupling Temporal Services with Nexus tutorial](https://learn.temporal.io/tutorials/nexus/nexus-sync-tutorial-java/), restructured so Ch 3 and Ch 4 use synchronous Nexus operations only. Chapter 5 introduces the workflow-backed async path and human-in-the-loop Updates that the original tutorial bundled into its single solution. The Java code under `polyglot/java-legacy/` is the Java solution from the same repo.
+The Python code under `01_run_monolith/` through `04_caller_swap/` is derived from the [`edu-nexus-code`](https://github.com/temporalio/edu-nexus-code) Python port of the [Decoupling Temporal Services with Nexus tutorial](https://learn.temporal.io/tutorials/nexus/nexus-sync-tutorial-java/), restructured so Ch 3 and Ch 4 use synchronous Nexus operations only. Chapter 5 introduces the workflow-backed async path; Chapter 6 adds the human-in-the-loop Updates that the original tutorial bundled into its single solution. The Java code under `polyglot/java-legacy/` is the Java solution from the same repo.
 
 `06_lifecycle/` adds failure-injection branches to the compliance handler so the included `lifecycle_starter.py` can exercise non-retryable errors, retryable errors with backoff, caller-driven cancellation, and the Nexus circuit breaker.

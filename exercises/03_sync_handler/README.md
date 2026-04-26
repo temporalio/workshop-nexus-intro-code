@@ -2,7 +2,7 @@
 
 In this chapter, you will implement synchronous Nexus handlers for both operations on the contract, register the handler with a Compliance worker, and create the Nexus endpoint that routes calls from Payments to Compliance.
 
-A sync Nexus operation must complete within 10 seconds. That is enough time for `check_compliance` to call the rule-based checker directly and return. `submit_review` will be a `NotImplementedError` stub for now: it needs a running workflow to send an Update to, and we have not introduced ComplianceWorkflow yet. Chapter 5 fills that in.
+A sync Nexus operation must complete within 10 seconds. That is enough time for `check_compliance` to call the rule-based checker directly and return. `submit_review` will be a `NotImplementedError` stub for now: it needs a running workflow to send an Update to, and we have not introduced ComplianceWorkflow yet. Chapter 5 introduces the workflow, and Chapter 6 fills `submit_review` in.
 
 By the end of this chapter, you will:
 
@@ -15,7 +15,7 @@ Make your changes in `exercise/`. Look for `TODO 2` and `TODO 3` comments in the
 
 ## Part A: Implement the sync handlers (TODO 2)
 
-Open `compliance/temporal/nexus_handler.py`. Two changes:
+Open `compliance/service_handler.py`. Three changes:
 
 1. Add the service handler decorator above the class:
 
@@ -33,7 +33,7 @@ Open `compliance/temporal/nexus_handler.py`. Two changes:
 
    ```python
    raise NotImplementedError(
-       "submit_review requires the workflow-backed compliance check, introduced in Ch 5"
+       "submit_review needs a workflow to send Updates to (the workflow is introduced in Ch 5; submit_review is implemented in Ch 6)"
    )
    ```
 
@@ -41,7 +41,7 @@ Both methods need the decorator, even the stub. Without it the worker will refus
 
 ## Part B: Register the handler on the Compliance worker (TODO 3)
 
-Open `compliance/temporal/worker.py`. Uncomment the registration line inside the `Worker(...)` call:
+Open `compliance/worker.py`. Uncomment the registration line inside the `Worker(...)` call:
 
 ```python
 nexus_service_handlers=[ComplianceNexusServiceHandler()],
@@ -62,7 +62,7 @@ temporal operator nexus endpoint create \
   --target-task-queue compliance-risk
 ```
 
-If you already created the endpoint in Chapter 1, this command returns an "already exists" message. That is fine.
+If you already created the endpoint in Chapter 2, this command returns an "already exists" message. That is fine.
 
 Confirm the endpoint:
 
@@ -75,7 +75,7 @@ temporal operator nexus endpoint list
 From `exercises/03_sync_handler/exercise/`:
 
 ```bash
-uv run python -m compliance.temporal.worker
+uv run python -m compliance.worker
 ```
 
 The startup banner should say `Registered: ComplianceNexusServiceHandler (sync only)`. If the worker exits with a Nexus configuration error, check that you decorated both methods on the handler class.
@@ -83,18 +83,18 @@ The startup banner should say `Registered: ComplianceNexusServiceHandler (sync o
 In a second terminal, also run the monolith Payments worker so transactions still process end-to-end (the Payments side does not switch to Nexus until Chapter 4):
 
 ```bash
-uv run python -m payments.temporal.worker
+uv run python -m payments.worker
 ```
 
 In a third terminal:
 
 ```bash
-uv run python -m payments.temporal.starter
+uv run python -m payments.starter
 ```
 
 The transactions still run through the Payments worker's local activity, exactly like Chapter 1. The Compliance worker is up, but nothing calls it yet. That happens in Chapter 4.
 
-## What you should take away
+## Take Aways
 
 The handler is an ordinary Python class with a decorator. The worker registers it the same way you would register a workflow or activity. The endpoint is a one-time CLI action that connects callers to the right namespace and task queue.
 

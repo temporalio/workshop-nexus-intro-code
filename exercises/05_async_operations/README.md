@@ -1,49 +1,37 @@
-# Chapter 5: Async Operations and Updates
+# Chapter 5: Async (Workflow-Backed) Nexus Operations
 
-In this chapter, you will introduce the workflow-backed compliance check. The Nexus operation `check_compliance` becomes asynchronous: it starts a `ComplianceWorkflow` that runs the rule-based check, sleeps to demonstrate durability, and for MEDIUM-risk transactions waits for a human reviewer's decision. The reviewer submits the decision through `submit_review`, which becomes a real sync handler that uses the Temporal Client to send a Workflow Update.
+In this chapter, you will convert the compliance check from a synchronous Nexus handler to a **workflow-backed** asynchronous one. Instead of returning a result inline within the 10-second sync deadline, the handler starts a `ComplianceWorkflow` and returns a handle to it. The Nexus runtime turns that handle into the three-event Nexus pattern (`Scheduled`, `Started`, `Completed`) on the caller's history.
 
-This is the most substantial chapter in the workshop. You will touch four existing files, create two new ones, and configure a full set of timeouts on the caller side.
+The MEDIUM-risk human-in-the-loop review path is **not** in this chapter, but arrives in Chapter 6. After Ch 5, all three transactions still resolve automatically (LOW completes, MEDIUM auto-approves with the AML monitoring note, HIGH declines), but the Compliance side is now durable: a workflow runs there, and you can kill the Compliance worker mid-flight and watch the work resume on restart.
 
 By the end of this chapter, you will:
 
-- Implement `check_compliance` as an async Nexus operation backed by a workflow (`@nexus.workflow_run_operation`)
-- Create `ComplianceWorkflow` with a `@workflow.update` method for human review
-- Replace the `submit_review` `NotImplementedError` stub with a real sync handler that sends an Update
-- Add `ReviewCallerWorkflow` on the Payments side and a `review_starter.py` script
-- Configure `schedule_to_close_timeout`, `schedule_to_start_timeout`, and `start_to_close_timeout` on the caller's Nexus call
+- Implement `ComplianceWorkflow.run` as a workflow that runs the rule-based `check_compliance` activity
+- Convert the `check_compliance` Nexus handler from `@nexusrpc.handler.sync_operation` to `@nexus.workflow_run_operation`
+- Register the new workflow + activity on the Compliance worker
+- Configure `schedule_to_start_timeout` and `start_to_close_timeout` on the caller's Nexus call (the `schedule_to_close_timeout` was already set in Ch 4)
 - See three Nexus events in the caller's Event History (`Scheduled`, `Started`, `Completed`) instead of two
 
-Make your changes in `exercise/`. Compare with `solution/` if you get stuck. There are no inline TODO numbers in this chapter, the work is sequenced as Parts below.
+Make your changes in `exercise/`. Look for `TODO 6` through `TODO 9` in the code. If you get stuck, compare with `solution/`.
 
-## Part A: Create ComplianceWorkflow
+## Part A: Implement ComplianceWorkflow.run (TODO 6)
 
-Create a new file `compliance/temporal/workflows.py` with the workflow definition. The workflow:
-
-- Runs `check_compliance` as an activity to get an automated risk classification
-- Sleeps 10 seconds (this is for the durability demo, kill the worker mid-sleep to see Temporal pick up where it left off)
-- Returns immediately for LOW or HIGH risk
-- For MEDIUM risk, waits for a `review` Update to provide a human decision
-
-Use the version in `solution/compliance/temporal/workflows.py` as the reference. Key decorators:
+Open `compliance/workflows.py`. The skeleton has the class structure, the `run` signature, and a `NotImplementedError` placeholder. Replace the placeholder body with the activity call:
 
 ```python
-@workflow.defn
-class ComplianceWorkflow:
-    @workflow.run
-    async def run(self, request: ComplianceRequest) -> ComplianceResult: ...
-
-    @workflow.update
-    async def review(self, approved: bool, explanation: str) -> ComplianceResult: ...
-
-    @review.validator
-    def validate_review(self, approved: bool, explanation: str) -> None: ...
+self._auto_result = await workflow.execute_activity(
+    check_compliance,
+    request,
+    start_to_close_timeout=timedelta(seconds=30),
+)
+return self._auto_result
 ```
 
-The validator rejects review attempts that arrive before the workflow is waiting (no auto-result yet) or after a decision was already made. This is what makes the Update idempotent and safe.
+We store the result on `self._auto_result` (rather than a local) so Chapter 6 can extend this method with a MEDIUM-risk wait_condition without restructuring it.
 
-## Part B: Convert check_compliance to async
+## Part B: Convert check_compliance to async (TODO 7)
 
-Open `compliance/temporal/nexus_handler.py`. Replace the `check_compliance` body. Currently it is a sync handler that calls the checker directly. Make it an async handler that starts `ComplianceWorkflow`:
+Open `compliance/service_handler.py`. The current implementation is the Ch 3/4 sync handler that calls the rule-based check directly. Replace it with a `workflow_run_operation`:
 
 ```python
 @nexus.workflow_run_operation
@@ -54,79 +42,39 @@ async def check_compliance(
         ComplianceWorkflow.run,
         input,
         id=f"compliance-{input.transaction_id}",
+        id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING,
     )
 ```
 
-You will need to import `ComplianceWorkflow` from `compliance.temporal.workflows` and add `from temporalio import nexus` at the top.
+Three pieces matter here:
 
-The decorator change matters. `@nexus.workflow_run_operation` returns a `WorkflowHandle`. The Nexus machinery records a `NexusOperationStarted` event on the caller's history when the workflow begins, and a `NexusOperationCompleted` event when the workflow finishes. The operation can run for up to 60 days.
+1. The decorator changes from `@nexusrpc.handler.sync_operation` to `@nexus.workflow_run_operation`.
+2. The context type changes to `nexus.WorkflowRunOperationContext`, and the return type to `nexus.WorkflowHandle[ComplianceResult]`.
+3. `id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING` makes the handler idempotent on retry: if the Nexus start request is retried for the same transaction, the handler returns a handle to the already-running workflow instead of failing with `WorkflowAlreadyStartedError`.
 
-## Part C: Implement submit_review for real
+`submit_review` stays a `NotImplementedError` stub. Ch 6 turns it into a real Update sender.
 
-Stay in `compliance/temporal/nexus_handler.py`. Replace the `NotImplementedError` body in `submit_review` with a real sync handler that sends an Update:
+## Part C: Register the workflow + activity on the Compliance worker (TODO 8)
+
+Open `compliance/worker.py`. The Ch 3/4 worker only registered the Nexus handler. Now that the handler starts a workflow and that workflow runs an activity, register both:
 
 ```python
-@nexusrpc.handler.sync_operation
-async def submit_review(
-    self, ctx: nexusrpc.handler.StartOperationContext, input: ReviewRequest
-) -> ComplianceResult:
-    client = nexus.client()
-    handle: WorkflowHandle = client.get_workflow_handle_for(
-        ComplianceWorkflow.run,
-        workflow_id=f"compliance-{input.transaction_id}",
+with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+    worker = Worker(
+        client,
+        task_queue=TASK_QUEUE,
+        workflows=[ComplianceWorkflow],
+        activities=[check_compliance],
+        activity_executor=executor,
+        nexus_service_handlers=[ComplianceNexusServiceHandler()],
     )
-    return await handle.execute_update(
-        ComplianceWorkflow.review,
-        args=[input.approved, input.explanation],
-    )
 ```
 
-`nexus.client()` returns the Temporal Client the worker was initialized with. The handler looks up the running ComplianceWorkflow by ID and sends a Workflow Update. The Update returns the same `ComplianceResult` the workflow's `review` method returns, and the Nexus operation forwards it to the caller.
+The activity is sync (it calls `print`), so we use a `ThreadPoolExecutor` like the Payments worker does.
 
-## Part D: Update the Compliance worker
+## Part D: Add the missing timeouts on the caller (TODO 9)
 
-Open `compliance/temporal/worker.py`. The worker currently registers only the Nexus handler. Add the workflow and activity:
-
-```python
-worker = Worker(
-    client,
-    task_queue=TASK_QUEUE,
-    workflows=[ComplianceWorkflow],
-    activities=[check_compliance],
-    activity_executor=executor,
-    nexus_service_handlers=[ComplianceNexusServiceHandler()],
-)
-```
-
-You will also need to import `ComplianceWorkflow` and `check_compliance`, and bring back the `concurrent.futures.ThreadPoolExecutor` block. The `solution/` version shows the full file.
-
-## Part E: Add ReviewCallerWorkflow on the Payments side
-
-Open `payments/temporal/workflows.py`. Add a second workflow class at the bottom of the file that submits a review through Nexus:
-
-```python
-@workflow.defn
-class ReviewCallerWorkflow:
-    @workflow.run
-    async def submit_review(self, request: ReviewRequest) -> ComplianceResult:
-        nexus_client = workflow.create_nexus_client(
-            service=ComplianceNexusService,
-            endpoint=NEXUS_ENDPOINT,
-        )
-        return await nexus_client.execute_operation(
-            ComplianceNexusService.submit_review,
-            request,
-            schedule_to_close_timeout=timedelta(seconds=10),
-        )
-```
-
-You will also need to import `ReviewRequest` from `shared.domain`.
-
-This workflow exists so the reviewer experience is symmetric with the rest of the system: humans trigger workflows, not raw Update calls. The Nexus call goes through the same endpoint as the compliance check.
-
-## Part F: Add the three timeouts to the compliance Nexus call
-
-Stay in `payments/temporal/workflows.py`. Find the existing `nexus_client.execute_operation` call inside `PaymentProcessingWorkflow`. It currently sets only `schedule_to_close_timeout`. Add two more:
+Open `payments/workflows.py`. The Ch 4 caller set only `schedule_to_close_timeout`. Now that the operation can run for minutes (the handler workflow runs an activity, may sleep, etc.), add bounds for each lifecycle phase:
 
 ```python
 compliance: ComplianceResult = await nexus_client.execute_operation(
@@ -140,83 +88,61 @@ compliance: ComplianceResult = await nexus_client.execute_operation(
 
 What each timeout means:
 
-- `schedule_to_close_timeout`: the total budget from the moment the operation is scheduled until it must complete. Bounds the worst case across retries.
-- `schedule_to_start_timeout`: how long you are willing to wait for the handler to pick up the operation. Useful for tripping early if no Compliance worker is healthy.
-- `start_to_close_timeout`: once the handler workflow has started, how long you are willing to wait for it to finish. For workflow-backed async operations this is bounded by the handler workflow's own progress.
+- `schedule_to_close_timeout` - total budget from the moment the operation is scheduled until it must complete. Bounds the worst case across retries.
+- `schedule_to_start_timeout` - how long you are willing to wait for the handler to pick up the operation. Trips early if no Compliance worker is healthy.
+- `start_to_close_timeout` - once the handler workflow has started, how long the operation may run before the caller treats it as timed out.
 
-## Part G: Update the Payments worker
+## Part E: Run the system end-to-end
 
-Open `payments/temporal/worker.py`. Add `ReviewCallerWorkflow` to the workflows list:
-
-```python
-workflows=[PaymentProcessingWorkflow, ReviewCallerWorkflow],
-```
-
-You will also need to import it from `payments.temporal.workflows`.
-
-## Part H: Add the review starter script
-
-Create a new file `payments/temporal/review_starter.py`. It connects to Temporal, builds a `ReviewRequest`, and executes a `ReviewCallerWorkflow` to approve TXN-B. Use `solution/payments/temporal/review_starter.py` as the reference, the contents are about 50 lines.
-
-## Part I: Run the system end-to-end
-
-You need four terminals, all from `exercises/05_async_operations/exercise/`.
+Three terminals from `exercises/05_async_operations/exercise/`.
 
 **Terminal 1, Compliance worker:**
 
 ```bash
-uv run python -m compliance.temporal.worker
+uv run python -m compliance.worker
 ```
 
-The banner now says "Registered: ComplianceWorkflow, check_compliance, ComplianceNexusServiceHandler".
+The banner now says `Registered: ComplianceWorkflow, check_compliance, ComplianceNexusServiceHandler`.
 
 **Terminal 2, Payments worker:**
 
 ```bash
-uv run python -m payments.temporal.worker
+uv run python -m payments.worker
 ```
-
-The banner says "Registered: PaymentProcessingWorkflow, ReviewCallerWorkflow".
 
 **Terminal 3, run the transactions:**
 
 ```bash
-uv run python -m payments.temporal.starter
+uv run python -m payments.starter
 ```
 
-TXN-A completes immediately as LOW risk. TXN-B blocks: it triggers a workflow on the Compliance side that has classified the risk as MEDIUM and is now waiting for human review. The starter hangs because TXN-B's workflow has not finished.
+All three transactions complete or decline automatically:
 
-**Terminal 4, submit the review for TXN-B:**
+- TXN-A: COMPLETED, LOW risk
+- TXN-B: COMPLETED, MEDIUM risk with the AML monitoring note (auto-approved by the rule-based check; Ch 6 adds the human-in-the-loop pause)
+- TXN-C: DECLINED_COMPLIANCE, HIGH risk
 
-```bash
-uv run python -m payments.temporal.review_starter
-```
+## Part F: Inspect the Event History
 
-Watch Terminal 3. As soon as the review is submitted, TXN-B finishes (COMPLETED with MEDIUM risk and the reviewer's explanation), then TXN-C runs and gets DECLINED_COMPLIANCE.
-
-## Part J: Inspect the Event History
-
-Open http://localhost:8233 and look at `payment-TXN-B` in the `payments-namespace`. The compliance Nexus operation now shows three events instead of two:
+Open http://localhost:8233 and look at one of the `payment-TXN-*` workflows in the `payments-namespace`. The compliance Nexus operation now shows **three events** instead of two:
 
 - `NexusOperationScheduled`
 - `NexusOperationStarted`
 - `NexusOperationCompleted`
 
-`NexusOperationStarted` is the marker for an async operation. The handler returned a workflow handle, and Temporal recorded that the operation has begun. Look at the timing between `Started` and `Completed`, that is the duration the handler workflow ran, including the time spent waiting for the human review.
+`NexusOperationStarted` is the marker for an async operation: the handler returned a workflow handle, and Temporal recorded that the handler workflow has begun. The duration between `Started` and `Completed` is the handler workflow's runtime.
 
-In the `compliance-namespace`, `compliance-TXN-B` shows the `WorkflowExecutionUpdateAccepted` and `WorkflowExecutionUpdateCompleted` events for the `review` Update.
+Switch to `compliance-namespace`. There is now a `compliance-TXN-*` workflow per transaction - the `ComplianceWorkflow` that the Nexus handler started.
 
-## Part K: Optional, durability test
+## Part G: Optional - durability test
 
-While TXN-B is waiting for review (after Terminal 3 starts but before Terminal 4 submits), kill the Compliance worker in Terminal 1 with Ctrl-C. Wait a few seconds. Restart it with the same command. Then submit the review in Terminal 4.
+While `payments.starter` is running, kill the Compliance worker (Ctrl-C in Terminal 1) right when one of the `compliance-TXN-*` workflows is mid-activity. Wait a few seconds. Restart it with the same command. The handler workflow resumes from where it stopped, the activity completes, the Nexus operation reports `Completed`, and the payment workflow finishes. Durability of the handler workflow is now a property of the Nexus boundary itself - the caller doesn't have to do anything special to get crash recovery.
 
-The review still gets through. The handler workflow resumes from where it stopped, processes the Update, and the Payment workflow completes. This is durability across the Nexus boundary.
+## Take Aways
 
-## What you should take away
+`@nexus.workflow_run_operation` is the bridge between Nexus and Temporal's durability story. The handler workflow can run for up to 60 days, which is dramatically more than the 10-second sync deadline. Crash recovery, retries, and result delivery all become properties of the handler workflow rather than concerns the caller has to handle.
 
-`@nexus.workflow_run_operation` is the bridge between Nexus and Temporal's durability story. Long-running work, human review, retries, and crash recovery all become properties of the underlying workflow rather than concerns the caller has to handle.
-
-The three timeouts give the caller bounded waiting at each stage of the operation lifecycle: how long to wait for a worker to pick it up, how long to wait once it has started, and how long the whole operation can run.
+The three timeouts give the caller bounded waiting at each stage of the operation lifecycle, which becomes operationally important once operations can run for minutes or hours.
 
 ## Stop here
 

@@ -15,7 +15,7 @@ Make your changes in `exercise/`. Look for `TODO 4` and `TODO 5` comments in the
 
 ## Part A: Swap the activity call for a Nexus call (TODO 4)
 
-Open `payments/temporal/workflows.py`. Find the `# TODO 4` comment block in `PaymentProcessingWorkflow`. Delete the activity call below it:
+Open `payments/workflows.py`. Find the `# TODO 4` comment block in `PaymentProcessingWorkflow`. Delete the activity call below it:
 
 ```python
 compliance: ComplianceResult = await workflow.execute_activity(
@@ -44,10 +44,10 @@ Same input. Same output. The workflow is now decoupled from the Compliance team'
 
 ## Part B: Clean up the Payments worker (TODO 5)
 
-Open `payments/temporal/worker.py`. Find the `# TODO 5` comment. Two cleanups:
+Open `payments/worker.py`. Find the `# TODO 5` comment. Two cleanups:
 
 1. Remove `check_compliance` from the `activities` list. The compliance check no longer runs on this worker.
-2. Remove the `from compliance.temporal.activities import check_compliance` import at the top.
+2. Remove the `from compliance.activities import check_compliance` import at the top.
 
 The list should end up as:
 
@@ -62,7 +62,7 @@ You need three terminals, all from `exercises/04_caller_swap/exercise/`.
 **Terminal 1, Compliance worker:**
 
 ```bash
-uv run python -m compliance.temporal.worker
+uv run python -m compliance.worker
 ```
 
 Wait for the "Registered: ComplianceNexusServiceHandler (sync only)" banner.
@@ -70,7 +70,7 @@ Wait for the "Registered: ComplianceNexusServiceHandler (sync only)" banner.
 **Terminal 2, Payments worker:**
 
 ```bash
-uv run python -m payments.temporal.worker
+uv run python -m payments.worker
 ```
 
 The banner now says "Nexus: ComplianceNexusService -> compliance-endpoint" and the activities list no longer contains `check_compliance`.
@@ -78,13 +78,13 @@ The banner now says "Nexus: ComplianceNexusService -> compliance-endpoint" and t
 **Terminal 3, run the transactions:**
 
 ```bash
-uv run python -m payments.temporal.starter
+uv run python -m payments.starter
 ```
 
 Expected results:
 
 - TXN-A: COMPLETED, LOW risk
-- TXN-B: COMPLETED, MEDIUM risk with the AML monitoring note (the rule-based checker auto-approves MEDIUM in this chapter, the human-in-the-loop path arrives in Chapter 5)
+- TXN-B: COMPLETED, MEDIUM risk with the AML monitoring note (the rule-based checker auto-approves MEDIUM in this chapter, the human-in-the-loop path arrives in Chapter 6)
 - TXN-C: DECLINED_COMPLIANCE, HIGH risk
 
 ## Part D: Inspect the Event History
@@ -98,11 +98,11 @@ That is the synchronous Nexus operation lifecycle: two events on the caller's hi
 
 Switch to the `compliance-namespace`. There are no workflows there, because the sync handler does not start one. Chapter 5 changes that.
 
-## What you should take away
+## Take Aways
 
 A one-line caller change moves work across a namespace boundary durably. Temporal handles routing, retries, and result delivery. The two teams now have separate workers, separate task queues, and separate deployment lifecycles.
 
-The Compliance team currently can only auto-approve or auto-deny. Chapter 5 introduces the workflow-backed compliance check and the Update-driven human review pattern that supports MEDIUM-risk transactions properly.
+The Compliance team currently can only auto-approve or auto-deny. Chapter 5 introduces the workflow-backed compliance check (so Compliance now has a durable workflow per transaction); Chapter 6 layers the Update-driven human review pattern that supports MEDIUM-risk transactions properly.
 
 ## Stop here
 

@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.temporal.nexus</groupId>
-    <artifactId>decouple-monolith-solution</artifactId>
+    <artifactId>polyglot-java-compliance</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Decouple Monolith - Solution (Java)</name>
-    <description>Solution: Refactor a working monolith by adding a Nexus boundary between Payments and Compliance</description>
+    <name>Polyglot Compliance Worker (Java)</name>
+    <description>Java compliance Nexus handler used as the polyglot demo for the Temporal Nexus workshop. Runs against the same compliance-namespace and compliance-risk task queue as the Python compliance worker, so the Python caller workflow can invoke it through the existing Nexus endpoint without any change on the Python side.</description>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
@@ -52,34 +52,8 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.0.0</version>
                 <configuration>
-                    <mainClass>payments.temporal.PaymentsWorkerApp</mainClass>
+                    <mainClass>compliance.temporal.ComplianceWorkerApp</mainClass>
                 </configuration>
-                <executions>
-                    <execution>
-                        <id>payments-worker</id>
-                        <configuration>
-                            <mainClass>payments.temporal.PaymentsWorkerApp</mainClass>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>compliance-worker</id>
-                        <configuration>
-                            <mainClass>compliance.temporal.ComplianceWorkerApp</mainClass>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>starter</id>
-                        <configuration>
-                            <mainClass>payments.temporal.PaymentStarter</mainClass>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>review-starter</id>
-                        <configuration>
-                            <mainClass>payments.temporal.ReviewStarter</mainClass>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
