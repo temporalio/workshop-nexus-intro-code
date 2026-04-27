@@ -9,7 +9,7 @@ NAMESPACE = "payments-namespace"
 
 async def main() -> None:
     print("==========================================================")
-    print("  PAYMENT STARTER - Decouple Monolith")
+    print("  PAYMENT STARTER")
     print("  Running 3 transactions through Temporal")
     print("==========================================================\n")
 

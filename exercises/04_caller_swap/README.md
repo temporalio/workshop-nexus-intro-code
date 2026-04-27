@@ -40,7 +40,7 @@ compliance: ComplianceResult = await nexus_client.execute_operation(
 )
 ```
 
-Same input. Same output. The workflow is now decoupled from the Compliance team's implementation. You will also need to remove the `check_compliance` import at the top of the file (it is no longer referenced). The Nexus stub does not need a retry policy, the Nexus machinery handles retries automatically.
+Same input. Same output. The workflow is now decoupled from the Compliance team's implementation. You will also need to remove the `check_compliance` import at the top of the file (it is no longer referenced). The Nexus call has no `retry_policy` parameter: Nexus uses a built-in retry policy on the caller side and the call cannot be customized that way. Inside an async (workflow-backed) handler, the underlying workflow's activities and child workflows are the things you tune retries on.
 
 ## Part B: Clean up the Payments worker (TODO 5)
 

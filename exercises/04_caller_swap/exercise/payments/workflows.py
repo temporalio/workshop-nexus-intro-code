@@ -14,12 +14,11 @@ NEXUS_ENDPOINT = "compliance-endpoint"
 
 @workflow.defn
 class PaymentProcessingWorkflow:
-    """MONOLITH VERSION - this works at Checkpoint 0.
+    """Starting point for Ch 4: compliance check is still a local activity.
 
-    This workflow orchestrates 3 steps using activity stubs:
-      Step 1: validate_payment   (Payments team)
-      Step 2: check_compliance   (Compliance team) - will become Nexus
-      Step 3: execute_payment    (Payments team)
+    Step 1: validate_payment   (Payments team)
+    Step 2: check_compliance   (Compliance team) - will become Nexus in TODO 4
+    Step 3: execute_payment    (Payments team)
 
     Error model: activity, child-workflow, and Nexus operation failures are allowed
     to propagate so the Workflow Execution itself ends in the Failed state, and

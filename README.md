@@ -70,7 +70,7 @@ The Web UI is at http://localhost:8233. The dev server creates a `default` names
 
 From Chapter 5 onward (where the Python compliance handler is `@nexus.workflow_run_operation`), the Python caller workflow hits this Java handler instead of the Python one. Same Nexus Service contract. Different language. No code change in Python. The Event History on the caller side looks identical to the pure-Python Ch 5/6/7 run - three Nexus events (`Scheduled`, `Started`, `Completed`) - and a `compliance-TXN-*` workflow runs on the Compliance side, just authored in Java.
 
-> The polyglot demo is intended to be run against Ch 5, 6, or 7. It also works against Ch 4, but the event shape will differ from pure-Python Ch 4: the Java handler is always async (workflow-backed), so the caller history will show three Nexus events and a workflow will appear in `compliance-namespace`. Pure-Python Ch 4 has a sync handler with two events and no compliance-side workflow.
+> The polyglot demo is intended to be run against the **Ch 7 solution state** (its caller has the timeouts and `ReviewCallerWorkflow` registered). It also runs cleanly against Ch 5 and Ch 6. Use `payments.starter` for the demo, not `payments.lifecycle_starter`: the Java handler is the Ch 6 equivalent and does not implement the Ch 7 failure-injection branches (TXN-FAIL-*, TXN-CIRCUIT-*), so those scenarios would silently succeed instead of demonstrating the lifecycle behaviors.
 
 ### Prerequisites
 
@@ -135,4 +135,4 @@ After Ch 6, MEDIUM-risk TXN-B blocks until a reviewer submits a decision (run `p
 
 The Python code under `01_run_monolith/` through `04_caller_swap/` is derived from the [`edu-nexus-code`](https://github.com/temporalio/edu-nexus-code) Python port of the [Decoupling Temporal Services with Nexus tutorial](https://learn.temporal.io/tutorials/nexus/nexus-sync-tutorial-java/), restructured so Ch 3 and Ch 4 use synchronous Nexus operations only. Chapter 5 introduces the workflow-backed async path; Chapter 6 adds the human-in-the-loop Updates that the original tutorial bundled into its single solution. The Java code under `polyglot/java-legacy/` is the Java solution from the same repo.
 
-`06_lifecycle/` adds failure-injection branches to the compliance handler so the included `lifecycle_starter.py` can exercise non-retryable errors, retryable errors with backoff, caller-driven cancellation, and the Nexus circuit breaker.
+`07_lifecycle/` adds failure-injection branches to the compliance handler so the included `lifecycle_starter.py` can exercise non-retryable errors, retryable errors with backoff, caller-driven cancellation, and the Nexus circuit breaker.

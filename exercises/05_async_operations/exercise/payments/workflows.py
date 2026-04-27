@@ -13,15 +13,11 @@ NEXUS_ENDPOINT = "compliance-endpoint"
 
 @workflow.defn
 class PaymentProcessingWorkflow:
-    """DECOUPLED VERSION - compliance check goes through Nexus.
+    """Starting point for Ch 5: synchronous Nexus call (Ch 4 state).
 
-    The compliance check is now a Nexus operation that routes to the Compliance team's
-    worker through the Nexus endpoint. Same input. Same output. Different architecture.
-
-    Note: in this chapter the Nexus operation is synchronous. MEDIUM-risk transactions
-    are auto-approved by the rule-based checker (with an AML monitoring note). The
-    workflow-backed compliance check that supports human-in-the-loop review for MEDIUM
-    risk is introduced in Ch 5.
+    The compliance check is a sync Nexus operation. TODO 9 below adds the two
+    extra timeouts (schedule_to_start, start_to_close) that the async handler
+    you implement in TODOs 6, 7, 8 makes useful.
 
     Error model: activity, child-workflow, and Nexus operation failures are allowed
     to propagate so the Workflow Execution itself ends in the Failed state, and

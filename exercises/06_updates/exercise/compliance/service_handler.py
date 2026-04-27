@@ -12,7 +12,7 @@ class ComplianceNexusServiceHandler:
     """Nexus service handler.
 
     check_compliance: async (workflow_run_operation) - starts a new ComplianceWorkflow.
-    submit_review: sync (sync_operation) - sends a Workflow Update to the running workflow.
+    submit_review: stub. TODO 11 turns it into a real Update sender.
     """
 
     @nexus.workflow_run_operation
@@ -30,7 +30,9 @@ class ComplianceNexusServiceHandler:
     async def submit_review(
         self, ctx: nexusrpc.handler.StartOperationContext, input: ReviewRequest
     ) -> ComplianceResult:
-        # TODO 11 (Chapter 6, Part B): Replace the NotImplementedError stub with a real Update sender.
+        # TODO 11 (Chapter 6, Part B): replace this stub with a real Update sender.
+        # Use nexus.client().get_workflow_handle_for(...).execute_update(...) - see README.
+        # You will also need: from temporalio.client import WorkflowHandle
         raise NotImplementedError(
             "submit_review: see Chapter 6 README Part B"
         )

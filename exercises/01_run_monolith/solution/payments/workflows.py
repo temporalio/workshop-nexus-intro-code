@@ -8,24 +8,21 @@ with workflow.unsafe.imports_passed_through():
     from compliance.models import ComplianceRequest, ComplianceResult
     from payments.activities import execute_payment, validate_payment
     from payments.models import PaymentRequest, PaymentResult
-    from shared.service import ComplianceNexusService
-
-NEXUS_ENDPOINT = "compliance-endpoint"
 
 @workflow.defn
 class PaymentProcessingWorkflow:
-    """MONOLITH VERSION - this works at Checkpoint 0.
+    """MONOLITH VERSION.
 
-    This workflow orchestrates 3 steps using activity stubs:
+    This workflow orchestrates 3 steps:
       Step 1: validate_payment   (Payments team)
-      Step 2: check_compliance   (Compliance team) - will become Nexus
+      Step 2: check_compliance   (Compliance team) - will become Nexus in Ch 4
       Step 3: execute_payment    (Payments team)
 
-    Error model: activity, child-workflow, and Nexus operation failures are allowed
-    to propagate so the Workflow Execution itself ends in the Failed state, and
-    cancellation propagates so the Execution ends as Canceled. Application-level
-    "this transaction will not go through" outcomes (REJECTED, DECLINED_COMPLIANCE)
-    are returned as PaymentResult so callers can inspect them on a successful run.
+    Error model: activity failures are allowed to propagate so the Workflow Execution
+    itself ends in the Failed state, and cancellation propagates so the Execution
+    ends as Canceled. Application-level "this transaction will not go through"
+    outcomes (REJECTED, DECLINED_COMPLIANCE) are returned as PaymentResult so callers
+    can inspect them on a successful run.
     """
 
     @workflow.run
@@ -49,7 +46,7 @@ class PaymentProcessingWorkflow:
             )
         workflow.logger.info(f"Step 1 passed: validation OK for {request.transaction_id}")
 
-        # Step 2: Compliance check
+        # Step 2: Compliance check (local activity - the monolith)
         comp_req = ComplianceRequest(
             transaction_id=request.transaction_id,
             amount=request.amount,
@@ -62,7 +59,6 @@ class PaymentProcessingWorkflow:
             f"Step 2: calling compliance check for {request.transaction_id}"
         )
 
-        # TODO 4 (Chapter 4, Part A): Replace this activity call with a Nexus call.
         compliance: ComplianceResult = await workflow.execute_activity(
             check_compliance,
             comp_req,

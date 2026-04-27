@@ -96,6 +96,8 @@ The payment workflow ends as `CancelRequested`/`Canceled`. The Nexus operation i
 
 If you want to control how the caller waits for the cancellation, the available cancellation types on `nexus_client.execute_operation` are `ABANDON`, `TRY_CANCEL`, `WAIT_REQUESTED`, and `WAIT_COMPLETED`. The default is `WAIT_COMPLETED`. The lifecycle starter uses the default; experiment with the others to feel the trade-offs.
 
+> Aside: the proto-level enum names (visible in core SDK source and some debug output) are `WAIT_CANCELLATION_REQUESTED` and `WAIT_CANCELLATION_COMPLETED`. The Python SDK exposes them as `WAIT_REQUESTED` / `WAIT_COMPLETED`, which is what `temporalio.workflow.NexusOperationCancellationType` ships.
+
 ### Scenario D: circuit breaker
 
 While Scenario D is running (after the 12-second wait), run:

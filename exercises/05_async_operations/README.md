@@ -70,7 +70,7 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
     )
 ```
 
-The activity is sync (it calls `print`), so we use a `ThreadPoolExecutor` like the Payments worker does.
+The activity is registered as a plain `def` in `compliance/activities.py` (no `async`), so the worker needs an `activity_executor` to run it on a thread. We use a `ThreadPoolExecutor` here, the same pattern the Payments worker uses for its sync activities.
 
 ## Part D: Add the missing timeouts on the caller (TODO 9)
 

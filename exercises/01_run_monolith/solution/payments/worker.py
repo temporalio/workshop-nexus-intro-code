@@ -20,7 +20,6 @@ async def main() -> None:
             client,
             task_queue=TASK_QUEUE,
             workflows=[PaymentProcessingWorkflow],
-            # TODO 5 (Chapter 4, Part B): Remove check_compliance from the activities list and the import above.
             activities=[validate_payment, execute_payment, check_compliance],
             activity_executor=executor,
         )

@@ -2,11 +2,10 @@ from dataclasses import dataclass
 
 @dataclass
 class ReviewRequest:
-    """Request data for submitting a human review decision via Nexus.
+    """A human reviewer's decision on a transaction.
 
-    Used by the ReviewCallerWorkflow to call the submit_review Nexus operation.
-    The Compliance team's sync Nexus handler receives this and sends a Workflow
-    Update to the running ComplianceWorkflow.
+    Used by the submit_review Nexus operation. Ch 3 declares it on the contract;
+    Ch 6 wires it up to a real Update sender.
     """
 
     transaction_id: str

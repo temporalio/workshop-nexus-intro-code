@@ -3,7 +3,10 @@ import nexusrpc
 from compliance.models import ComplianceRequest, ComplianceResult
 from shared.models import ReviewRequest
 
-# TODO 1 (Chapter 2, Part A): Add @nexusrpc.service decorator and Operation type annotations.
+# TODO 1 (Chapter 2, Part A): add @nexusrpc.service decorator + Operation type annotations.
+# Replace the commented lines below with their uncommented versions and remove `pass`.
+#
+# @nexusrpc.service
 class ComplianceNexusService:
     """Nexus Service Interface - the shared contract between Payments and Compliance teams.
 
@@ -12,4 +15,6 @@ class ComplianceNexusService:
       - Compliance team implements a handler for it (in the worker)
     """
 
+    # check_compliance: nexusrpc.Operation[ComplianceRequest, ComplianceResult]
+    # submit_review: nexusrpc.Operation[ReviewRequest, ComplianceResult]
     pass
