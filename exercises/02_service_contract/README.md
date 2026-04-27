@@ -56,7 +56,7 @@ Verify both exist:
 temporal operator namespace list
 ```
 
-You should see `payments-namespace` and `compliance-namespace` alongside `default` and `temporal-system`.
+You should see `payments-namespace` and `compliance-namespace` alongside `default`.
 
 ## Part C: Create the Nexus Endpoint
 
