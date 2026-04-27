@@ -15,7 +15,7 @@ async def main() -> None:
 
     Compliance check is no longer a local activity - it goes through Nexus to the
     Compliance worker. The ReviewCallerWorkflow (which submits human review decisions
-    via Nexus) is introduced in Ch 5 alongside the workflow-backed compliance check.
+    via Nexus) is introduced in Ch 6.
     """
     client = await Client.connect("localhost:7233", namespace=NAMESPACE)
 

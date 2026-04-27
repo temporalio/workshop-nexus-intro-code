@@ -14,11 +14,11 @@ NEXUS_ENDPOINT = "compliance-endpoint"
 
 @workflow.defn
 class PaymentProcessingWorkflow:
-    """MONOLITH VERSION - this works at Checkpoint 0.
+    """MONOLITH VERSION.
 
-    This workflow orchestrates 3 steps using activity stubs:
+    This workflow orchestrates 3 steps:
       Step 1: validate_payment   (Payments team)
-      Step 2: check_compliance   (Compliance team) - will become Nexus
+      Step 2: check_compliance   (Compliance team) - will become Nexus in Ch 4
       Step 3: execute_payment    (Payments team)
 
     Error model: activity, child-workflow, and Nexus operation failures are allowed

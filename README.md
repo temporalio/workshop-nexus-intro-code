@@ -62,7 +62,7 @@ Open one terminal per worker and per starter. See the workshop content repo for 
 temporal server start-dev
 ```
 
-The Web UI is at http://localhost:8233. The dev server creates a `default` namespace automatically; that is all Chapter 1 needs. The split namespaces (`payments-namespace`, `compliance-namespace`) and the `compliance-endpoint` Nexus endpoint are created interactively in **Chapter 2**, alongside the contract that uses them - see `exercises/02_service_contract/README.md` Parts D and E.
+The Web UI is at http://localhost:8233. The dev server creates a `default` namespace automatically; that is all Chapter 1 needs. The split namespaces (`payments-namespace`, `compliance-namespace`) and the `compliance-endpoint` Nexus endpoint are created interactively in **Chapter 2**, alongside the contract that uses them - see `exercises/02_service_contract/README.md` Parts B and C.
 
 ## Polyglot (Java compliance worker)
 

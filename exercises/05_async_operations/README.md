@@ -52,6 +52,8 @@ Three pieces matter here:
 2. The context type changes to `nexus.WorkflowRunOperationContext`, and the return type to `nexus.WorkflowHandle[ComplianceResult]`.
 3. `id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING` makes the handler idempotent on retry: if the Nexus start request is retried for the same transaction, the handler returns a handle to the already-running workflow instead of failing with `WorkflowAlreadyStartedError`.
 
+While you are in the file, delete the now-unused `from compliance.activities import check_compliance as _check_compliance` import. The handler no longer calls the rule directly; the activity runs inside `ComplianceWorkflow` instead.
+
 `submit_review` stays a `NotImplementedError` stub. Ch 6 turns it into a real Update sender.
 
 ## Part C: Register the workflow + activity on the Compliance worker (TODO 8)
@@ -91,6 +93,8 @@ What each timeout means:
 - `schedule_to_close_timeout` - total budget from the moment the operation is scheduled until it must complete. Bounds the worst case across retries.
 - `schedule_to_start_timeout` - how long you are willing to wait for the handler to pick up the operation. Trips early if no Compliance worker is healthy.
 - `start_to_close_timeout` - once the handler workflow has started, how long the operation may run before the caller treats it as timed out.
+
+Both `schedule_to_start_timeout` and `start_to_close_timeout` on Nexus operations require Temporal Server v1.31.0 or later. The dev CLI (`temporal server start-dev`) bundles a recent enough server, so this is only a concern on older self-hosted clusters.
 
 ## Part E: Run the system end-to-end
 

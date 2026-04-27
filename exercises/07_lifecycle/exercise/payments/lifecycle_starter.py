@@ -1,6 +1,6 @@
 import asyncio
 
-from temporalio.client import Client
+from temporalio.client import Client, WorkflowFailureError
 
 from payments.models import TASK_QUEUE, PaymentRequest
 from payments.workflows import PaymentProcessingWorkflow
@@ -44,8 +44,10 @@ async def scenario_non_retryable(client: Client) -> None:
             timeout=20,
         )
         print("  Unexpected: workflow completed successfully.")
-    except Exception as exc:
+    except WorkflowFailureError as exc:
         print(f"  Workflow failed as expected: {type(exc).__name__}: {exc}")
+        if exc.cause is not None:
+            print(f"  Caused by: {type(exc.cause).__name__}: {exc.cause}")
         print("  Confirmed: the Nexus operation failed with no retries.")
     print(f"  Inspect:")
     print(f"    temporal workflow show -w payment-TXN-FAIL-NONRETRY-1 -n {NAMESPACE}")

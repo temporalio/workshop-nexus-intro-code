@@ -11,12 +11,7 @@ from payments.workflows import PaymentProcessingWorkflow, ReviewCallerWorkflow
 NAMESPACE = "payments-namespace"
 
 async def main() -> None:
-    """Payments worker with Nexus - no compliance activity registered.
-
-    Changes from monolith:
-      1. ComplianceActivity registration removed (lives on compliance worker now)
-      2. ReviewCallerWorkflow registered (submits reviews via Nexus)
-    """
+    """Payments worker - hosts PaymentProcessingWorkflow and ReviewCallerWorkflow."""
     client = await Client.connect("localhost:7233", namespace=NAMESPACE)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:

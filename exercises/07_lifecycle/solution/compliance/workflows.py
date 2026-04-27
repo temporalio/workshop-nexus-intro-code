@@ -8,8 +8,7 @@ with workflow.unsafe.imports_passed_through():
 
 @workflow.defn
 class ComplianceWorkflow:
-    """Runs an automated compliance check and, for MEDIUM-risk
-    transactions, waits for a human reviewer to approve or deny.
+    """Runs automated compliance check; for MEDIUM risk waits on human review.
 
     LOW risk  -> auto-approved, returns immediately
     HIGH risk -> auto-denied, returns immediately
@@ -37,10 +36,10 @@ class ComplianceWorkflow:
             return self._auto_result
 
         # Step 3: MEDIUM risk -> sleep then wait for human review via Update.
-        # The sleep is here to demonstrate Nexus + Temporal durability: kill the
-        # compliance worker mid-sleep, restart it, and the workflow resumes
-        # automatically. The wait_condition below is also durable, so cancellation
-        # and reviewer Updates flow through correctly even across worker restarts.
+        # The sleep demonstrates Nexus + Temporal durability: kill the compliance
+        # worker mid-sleep, restart it, and the workflow resumes from where it
+        # left off. The wait_condition below is also durable, so cancellation and
+        # reviewer Updates flow through correctly even across worker restarts.
         await workflow.sleep(timedelta(seconds=10))
         await workflow.wait_condition(lambda: self._review_result is not None)
         return self._review_result

@@ -14,11 +14,12 @@ NEXUS_ENDPOINT = "compliance-endpoint"
 
 @workflow.defn
 class PaymentProcessingWorkflow:
-    """ASYNC NEXUS VERSION.
+    """ASYNC NEXUS VERSION with human-in-the-loop review on MEDIUM risk.
 
-    The compliance check is now an asynchronous Nexus operation backed by a workflow
-    on the Compliance side. MEDIUM-risk transactions block until a human reviewer
-    submits a decision via Update.
+    The compliance check is an asynchronous Nexus operation backed by ComplianceWorkflow
+    on the Compliance side. In Ch 6 ComplianceWorkflow waits for a `review` Workflow
+    Update on MEDIUM-risk transactions, so the Nexus call here will block until a
+    reviewer submits a decision (run `python -m payments.review_starter`).
 
     Three timeouts are configured on the Nexus call:
       - schedule_to_close_timeout: total budget from when we schedule the operation
@@ -56,7 +57,7 @@ class PaymentProcessingWorkflow:
             )
         workflow.logger.info(f"Step 1 passed: validation OK for {request.transaction_id}")
 
-        # Step 2: Compliance check via async Nexus operation (Compliance team)
+        # Step 2: Compliance check via Nexus (Compliance team)
         comp_req = ComplianceRequest(
             transaction_id=request.transaction_id,
             amount=request.amount,

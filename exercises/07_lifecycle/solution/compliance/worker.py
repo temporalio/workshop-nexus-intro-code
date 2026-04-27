@@ -12,15 +12,7 @@ from compliance.workflows import ComplianceWorkflow
 NAMESPACE = "compliance-namespace"
 
 async def main() -> None:
-    """Compliance team's worker - handles Nexus requests from Payments.
-
-    Task queue: "compliance-risk"
-
-    Registers three things:
-      1. ComplianceWorkflow - the workflow that wraps the activity
-      2. check_compliance activity - the activity that runs the checker
-      3. ComplianceNexusServiceHandler - the Nexus handler that launches the workflow
-    """
+    """Compliance team's worker - hosts ComplianceWorkflow + check_compliance + Nexus handler."""
     client = await Client.connect("localhost:7233", namespace=NAMESPACE)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:

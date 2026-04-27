@@ -10,15 +10,15 @@ class ComplianceNexusServiceHandler:
     """Nexus service handler with synchronous operations.
 
     check_compliance: runs the rule-based checker directly and returns the result.
-    submit_review: stub. Will be implemented in Ch 5 once we have a workflow to update.
+    submit_review: stub. Will be implemented in Ch 6 once ComplianceWorkflow has a review Update.
     """
 
     async def check_compliance(
         self, ctx: nexusrpc.handler.StartOperationContext, input: ComplianceRequest
     ) -> ComplianceResult:
-        return None
+        raise NotImplementedError("TODO 2: see Chapter 3 README Part A")
 
     async def submit_review(
         self, ctx: nexusrpc.handler.StartOperationContext, input: ReviewRequest
     ) -> ComplianceResult:
-        return None
+        raise NotImplementedError("TODO 2: see Chapter 3 README Part A")

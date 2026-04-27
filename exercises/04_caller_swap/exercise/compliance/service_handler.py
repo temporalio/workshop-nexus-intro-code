@@ -10,7 +10,7 @@ class ComplianceNexusServiceHandler:
     """Nexus service handler with synchronous operations.
 
     check_compliance runs the rule-based checker directly and returns the result.
-    submit_review is a stub. It will be implemented in Ch 5 once we have a workflow to update.
+    submit_review is a stub. It will be implemented in Ch 6 once ComplianceWorkflow has a review Update.
     """
 
     @nexusrpc.handler.sync_operation
