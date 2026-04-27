@@ -41,6 +41,13 @@ public class ComplianceWorkerApp {
         // L — Launch
         factory.start();
         
-        System.out.println("Compliance Worker started on: compliance-risk");   
+        System.out.println("=========================================================");
+        System.out.println("  ComplianceWorkerApp: started");
+        System.out.println("    Namespace:   compliance-namespace");
+        System.out.println("    Task Queue:  compliance-risk");
+        System.out.println("    Workflow:    ComplianceWorkflowImpl");
+        System.out.println("    Activity:    ComplianceActivityImpl");
+        System.out.println("    Nexus:       ComplianceNexusServiceImpl");
+        System.out.println("=========================================================");
     }
 }
