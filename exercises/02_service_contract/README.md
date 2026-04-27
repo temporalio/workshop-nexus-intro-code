@@ -62,7 +62,9 @@ You should see `payments-namespace` and `compliance-namespace` alongside `defaul
 
 A Nexus Endpoint is a routing rule in Temporal's Nexus registry. It tells the server: when a caller invokes the Endpoint named `compliance-endpoint`, deliver the request to a worker polling the `compliance-risk` task queue in `compliance-namespace`. Callers reference the Endpoint by name; they do not need to know the target namespace or task queue.
 
-The Endpoint also carries a Markdown description that documents the contract for anyone browsing the registry. We ship one at the repo root in `compliance-endpoint.md`. From the repo root:
+The Endpoint also carries a Markdown description that documents the contract for anyone browsing the registry. We ship one at the repo root in `compliance-endpoint.md`. 
+
+From the repo root:
 
 ```bash
 temporal operator nexus endpoint create \
