@@ -22,13 +22,13 @@ Open `compliance/service_handler.py`. Three changes:
    @nexusrpc.handler.service_handler(service=ComplianceNexusService)
    ```
 
-2. Decorate both methods with `@nexusrpc.handler.sync_operation`. Replace the `return None` body in `check_compliance` with a call to the rule-based checker:
+2. Decorate both methods with `@nexusrpc.handler.sync_operation`. Replace the `raise NotImplementedError("TODO 2: see Chapter 3 README Part A")` body in `check_compliance` with a call to the rule-based checker:
 
    ```python
    return _check_compliance(input)
    ```
 
-3. Replace the `return None` body in `submit_review` with the stub raise:
+3. Replace the `raise NotImplementedError("TODO 2: see Chapter 3 README Part A")` body in `submit_review` with the stub raise:
 
    ```python
    raise NotImplementedError(
