@@ -71,14 +71,14 @@ The starter runs all four scenarios in sequence (about 90 seconds end to end). W
 
 ### Scenario A: non-retryable error
 
-In the `payments-namespace`, `payment-TXN-FAIL-NONRETRY-1` ends in `Failed` state. The `NexusOperationError` propagates out of `PaymentProcessingWorkflow` (the workflow does not catch it), so the Workflow Execution itself fails. Its Event History shows `NexusOperationScheduled` followed by `NexusOperationFailed` with no retries in between. The starter catches the resulting `WorkflowFailureError` and prints the `NexusOperationError` cause.
+In the `payments-namespace`, `payment-ch07-TXN-FAIL-NONRETRY-1` ends in `Failed` state. The `NexusOperationError` propagates out of `PaymentProcessingWorkflow` (the workflow does not catch it), so the Workflow Execution itself fails. Its Event History shows `NexusOperationScheduled` followed by `NexusOperationFailed` with no retries in between. The starter catches the resulting `WorkflowFailureError` and prints the `NexusOperationError` cause.
 
 ### Scenario B: retryable error with BackingOff
 
 While the starter is in this scenario (~20 seconds), run:
 
 ```bash
-temporal workflow describe -w payment-TXN-FAIL-RETRY-1 -n payments-namespace
+temporal workflow describe -w payment-ch07-TXN-FAIL-RETRY-1 -n payments-namespace
 ```
 
 You should see `Pending Nexus Operations` with `State: BackingOff` and `Attempt` increasing on each subsequent describe call. After ~20 seconds, the starter terminates the workflow so the demo can move on. The workflow ends in `Terminated` state. The cancellation-propagation lesson is in Scenario C, where the Nexus handler is in a state that can actually accept the cancel.
@@ -88,8 +88,8 @@ You should see `Pending Nexus Operations` with `State: BackingOff` and `Attempt`
 After the starter ends Scenario C, look at both sides:
 
 ```bash
-temporal workflow describe -w payment-TXN-CANCEL-1   -n payments-namespace
-temporal workflow describe -w compliance-TXN-CANCEL-1 -n compliance-namespace
+temporal workflow describe -w payment-ch07-TXN-CANCEL-1   -n payments-namespace
+temporal workflow describe -w compliance-ch07-TXN-CANCEL-1 -n compliance-namespace
 ```
 
 The payment workflow ends as `CancelRequested`/`Canceled`. The Nexus operation in the caller's history shows a `NexusOperationCanceled` event. The handler `ComplianceWorkflow` (in the compliance namespace) is also cancelled, even though we never told it directly. Cancellation flows through the Nexus boundary.
@@ -103,7 +103,7 @@ If you want to control how the caller waits for the cancellation, the available 
 While Scenario D is running (after the 12-second wait), run:
 
 ```bash
-temporal workflow describe -w payment-TXN-CIRCUIT-6 -n payments-namespace
+temporal workflow describe -w payment-ch07-TXN-CIRCUIT-6 -n payments-namespace
 ```
 
 The first few `TXN-CIRCUIT-*` workflows show `State: BackingOff`. Once the breaker has tripped (around the 5th retryable failure on this caller-Namespace/Endpoint pair), the later ones show:
@@ -126,3 +126,5 @@ The circuit breaker is per `(caller-Namespace, Endpoint)` pair. A misbehaving ha
 ## Stop here
 
 Stop both workers (Ctrl-C) when finished. The starter cleans up its own workflows at the end of each scenario, so no extra cleanup is needed: Scenarios B and D `terminate()` (the Nexus operations there are blocked on retries / circuit breaker, so graceful cancellation would stall the demo); Scenario C uses `cancel()` to demonstrate cancellation propagating through the Nexus boundary, and both the payment and compliance workflows end in `Canceled` because the workflow does not catch the cancellation.
+
+**Re-running this chapter:** workflow IDs are stable and business-meaningful (e.g., `payment-ch07-TXN-CANCEL-1`). Running `lifecycle_starter.py` a second time without a clean namespace will hit `WorkflowAlreadyStartedError` on any ID that did not terminate or complete. Restart the dev server for a clean slate before re-running.

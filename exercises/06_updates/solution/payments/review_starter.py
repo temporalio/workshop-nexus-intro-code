@@ -32,7 +32,7 @@ async def main() -> None:
     # The ReviewCallerWorkflow is short-lived - one Nexus call, then done. We
     # tag its ID with a fresh UUID so attendees can re-run this starter without
     # hitting WorkflowAlreadyStartedError. The Update it sends targets the
-    # long-running compliance-{transaction_id} workflow, which has the stable
+    # long-running compliance-ch06-{transaction_id} workflow, which has the stable
     # business ID.
     workflow_id = f"review-TXN-B-{uuid.uuid4()}"
     result: ComplianceResult = await client.execute_workflow(

@@ -45,8 +45,18 @@ uv sync
 This creates a single `.venv/` at the root that all chapter snapshots share (the dependencies are identical across chapters: `temporalio` and `nexus-rpc`).
 
 From inside any `exercises/<chapter>/exercise/` or `exercises/<chapter>/solution/` directory:
-Note that Chapters 1–4 don't have a separate compliance worker (compliance is in-process in Ch 1, and the Nexus handler is sync in Ch 3–4). The compliance.worker module first appears in Chapter 5
-Don't run `uv run python -m compliance.worker`
+
+**Chapter 1** runs only the Payments worker — Compliance is an in-process activity:
+
+```bash
+uv run python -m payments.worker
+uv run python -m payments.starter
+```
+
+**Chapter 2** is setup-only (creating namespaces and the Nexus endpoint via `temporal operator`); no workers run.
+
+**Chapters 3–7** run a separate Compliance worker alongside Payments:
+
 ```bash
 uv run python -m payments.worker
 uv run python -m compliance.worker

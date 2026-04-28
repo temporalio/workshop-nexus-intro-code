@@ -137,5 +137,5 @@ class ReviewCallerWorkflow:
         return await nexus_client.execute_operation(
             ComplianceNexusService.submit_review,
             request,
-            schedule_to_close_timeout=timedelta(seconds=10),
+            schedule_to_close_timeout=timedelta(seconds=60),
         )

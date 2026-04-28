@@ -23,7 +23,7 @@ class ComplianceNexusServiceHandler:
         return await ctx.start_workflow(
             ComplianceWorkflow.run,
             input,
-            id=f"compliance-{input.transaction_id}",
+            id=f"compliance-ch06-{input.transaction_id}",
             id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING,
         )
 
@@ -38,7 +38,7 @@ class ComplianceNexusServiceHandler:
         client = nexus.client()
         handle: WorkflowHandle[ComplianceWorkflow, ComplianceResult] = client.get_workflow_handle_for(
             ComplianceWorkflow.run,
-            workflow_id=f"compliance-{input.transaction_id}",
+            workflow_id=f"compliance-ch06-{input.transaction_id}",
         )
         return await handle.execute_update(
             ComplianceWorkflow.review,

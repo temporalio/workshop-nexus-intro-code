@@ -28,7 +28,7 @@ def banner(title: str) -> None:
 
 async def scenario_non_retryable(client: Client) -> None:
     banner("Scenario A: non-retryable OperationError")
-    print("  Starting payment-TXN-FAIL-NONRETRY-1.")
+    print("  Starting payment-ch07-TXN-FAIL-NONRETRY-1.")
     print("  The compliance handler raises nexusrpc.OperationError.")
     print("  Expect: the NexusOperationError propagates out of PaymentProcessingWorkflow")
     print("  and the Workflow Execution ends in the Failed state with no retries.")
@@ -38,7 +38,7 @@ async def scenario_non_retryable(client: Client) -> None:
             client.execute_workflow(
                 PaymentProcessingWorkflow.process_payment,
                 request("TXN-FAIL-NONRETRY-1"),
-                id="payment-TXN-FAIL-NONRETRY-1",
+                id="payment-ch07-TXN-FAIL-NONRETRY-1",
                 task_queue=TASK_QUEUE,
             ),
             timeout=20,
@@ -50,11 +50,11 @@ async def scenario_non_retryable(client: Client) -> None:
             print(f"  Caused by: {type(exc.cause).__name__}: {exc.cause}")
         print("  Confirmed: the Nexus operation failed with no retries.")
     print(f"  Inspect:")
-    print(f"    temporal workflow show -w payment-TXN-FAIL-NONRETRY-1 -n {NAMESPACE}")
+    print(f"    temporal workflow show -w payment-ch07-TXN-FAIL-NONRETRY-1 -n {NAMESPACE}")
 
 async def scenario_retryable(client: Client) -> None:
     banner("Scenario B: retryable HandlerError (BackingOff)")
-    print("  Starting payment-TXN-FAIL-RETRY-1.")
+    print("  Starting payment-ch07-TXN-FAIL-RETRY-1.")
     print("  The compliance handler raises nexusrpc.HandlerError(INTERNAL) on every call.")
     print("  The Nexus machinery treats this as retryable: Pending Operations show")
     print("  State: BackingOff and Attempt climbs.")
@@ -62,12 +62,12 @@ async def scenario_retryable(client: Client) -> None:
     handle = await client.start_workflow(
         PaymentProcessingWorkflow.process_payment,
         request("TXN-FAIL-RETRY-1"),
-        id="payment-TXN-FAIL-RETRY-1",
+        id="payment-ch07-TXN-FAIL-RETRY-1",
         task_queue=TASK_QUEUE,
     )
     print("  Workflow started. Waiting 20 seconds while retries accumulate.")
     print(f"  In another terminal, run:")
-    print(f"    temporal workflow describe -w payment-TXN-FAIL-RETRY-1 -n {NAMESPACE}")
+    print(f"    temporal workflow describe -w payment-ch07-TXN-FAIL-RETRY-1 -n {NAMESPACE}")
     await asyncio.sleep(20)
     print("  Terminating to free the slot for the next scenario (this is a demo,")
     print("  in production you would let it ride out the schedule_to_close_timeout).")
@@ -81,7 +81,7 @@ async def scenario_retryable(client: Client) -> None:
 
 async def scenario_cancellation(client: Client) -> None:
     banner("Scenario C: caller-driven cancellation")
-    print("  Starting payment-TXN-CANCEL-1 ($12,000 international = MEDIUM risk).")
+    print("  Starting payment-ch07-TXN-CANCEL-1 ($12,000 international = MEDIUM risk).")
     print("  ComplianceWorkflow classifies the risk as MEDIUM, sleeps 10 seconds,")
     print("  then waits for a human-review Update. We cancel the payment workflow")
     print("  during that pause and the cancellation propagates through the Nexus")
@@ -90,18 +90,18 @@ async def scenario_cancellation(client: Client) -> None:
     handle = await client.start_workflow(
         PaymentProcessingWorkflow.process_payment,
         request("TXN-CANCEL-1", amount=12000.0),
-        id="payment-TXN-CANCEL-1",
+        id="payment-ch07-TXN-CANCEL-1",
         task_queue=TASK_QUEUE,
     )
     await asyncio.sleep(3)
-    print("  Cancelling payment-TXN-CANCEL-1.")
+    print("  Cancelling payment-ch07-TXN-CANCEL-1.")
     try:
         await handle.cancel()
     except Exception as exc:
         print(f"  Cancel raised: {type(exc).__name__}")
     print("  Cancellation requested. Inspect both sides after a few seconds:")
-    print(f"    temporal workflow describe -w payment-TXN-CANCEL-1   -n {NAMESPACE}")
-    print(f"    temporal workflow describe -w compliance-TXN-CANCEL-1 -n compliance-namespace")
+    print(f"    temporal workflow describe -w payment-ch07-TXN-CANCEL-1   -n {NAMESPACE}")
+    print(f"    temporal workflow describe -w compliance-ch07-TXN-CANCEL-1 -n compliance-namespace")
     print("  See the samples-python nexus_cancel sample for the in-workflow cancellation")
     print("  pattern (start_operation + task.cancel() + asyncio.shield in handler).")
 
@@ -115,7 +115,7 @@ async def scenario_circuit_breaker(client: Client) -> None:
     print()
     handles = []
     for transaction_index in range(1, 7):
-        wid = f"payment-TXN-CIRCUIT-{transaction_index}"
+        wid = f"payment-ch07-TXN-CIRCUIT-{transaction_index}"
         handle = await client.start_workflow(
             PaymentProcessingWorkflow.process_payment,
             request(f"TXN-CIRCUIT-{transaction_index}"),
@@ -130,7 +130,7 @@ async def scenario_circuit_breaker(client: Client) -> None:
     print()
     print("  Inspect circuit-breaker state on any of the workflows:")
     for transaction_index in (1, 5, 6):
-        print(f"    temporal workflow describe -w payment-TXN-CIRCUIT-{transaction_index} -n {NAMESPACE}")
+        print(f"    temporal workflow describe -w payment-ch07-TXN-CIRCUIT-{transaction_index} -n {NAMESPACE}")
     print()
     print("  Terminating all six so they don't keep retrying.")
     print("  As in Scenario B, terminate() is the right cleanup here because the")

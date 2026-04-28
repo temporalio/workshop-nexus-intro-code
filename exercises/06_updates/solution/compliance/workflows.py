@@ -41,6 +41,7 @@ class ComplianceWorkflow:
         # reviewer Updates flow through correctly even across worker restarts.
         await workflow.sleep(timedelta(seconds=10))
         await workflow.wait_condition(lambda: self._review_result is not None)
+        assert self._review_result is not None  # wait_condition guarantees this
         return self._review_result
 
     @workflow.update

@@ -32,6 +32,7 @@ Open `compliance/workflows.py`. Three additions:
 
    await workflow.sleep(timedelta(seconds=10))
    await workflow.wait_condition(lambda: self._review_result is not None)
+   assert self._review_result is not None  # wait_condition guarantees this
    return self._review_result
    ```
 
@@ -68,7 +69,7 @@ Open `compliance/service_handler.py`. Replace the `NotImplementedError` body in 
 client = nexus.client()
 handle: WorkflowHandle = client.get_workflow_handle_for(
     ComplianceWorkflow.run,
-    workflow_id=f"compliance-{input.transaction_id}",
+    workflow_id=f"compliance-ch06-{input.transaction_id}",
 )
 return await handle.execute_update(
     ComplianceWorkflow.review,
@@ -140,7 +141,7 @@ The banner now lists `PaymentProcessingWorkflow, ReviewCallerWorkflow`.
 uv run python -m payments.starter
 ```
 
-TXN-A completes quickly as LOW risk. TXN-B **blocks**: it triggered a `compliance-TXN-B` workflow that classified the risk as MEDIUM, slept for 10 seconds, and is now waiting for human review. The starter is sitting on its `execute_workflow` call for TXN-B.
+TXN-A completes quickly as LOW risk. TXN-B **blocks**: it triggered a `compliance-ch06-TXN-B` workflow that classified the risk as MEDIUM, slept for 10 seconds, and is now waiting for human review. The starter is sitting on its `execute_workflow` call for TXN-B.
 
 **Terminal 4, submit the review for TXN-B:**
 
@@ -152,15 +153,25 @@ Watch Terminal 3. As soon as the review is submitted, TXN-B finishes (COMPLETED 
 
 ## Part E: Inspect the Event History
 
-Open http://localhost:8233 and look at `payment-TXN-B` in the `payments-namespace`. The compliance Nexus operation still shows three events (`Scheduled`, `Started`, `Completed`), but the duration between `Started` and `Completed` is much longer - that is the time spent waiting for human review.
+Open http://localhost:8233 and look at `payment-ch06-TXN-B` in the `payments-namespace`. The compliance Nexus operation still shows three events (`Scheduled`, `Started`, `Completed`), but the duration between `Started` and `Completed` is much longer - that is the time spent waiting for human review.
 
-In `compliance-namespace`, `compliance-TXN-B` shows `WorkflowExecutionUpdateAccepted` and `WorkflowExecutionUpdateCompleted` events for the `review` Update. That is the Update propagating through Nexus from the Payments side.
+In `compliance-namespace`, `compliance-ch06-TXN-B` shows `WorkflowExecutionUpdateAccepted` and `WorkflowExecutionUpdateCompleted` events for the `review` Update. That is the Update propagating through Nexus from the Payments side.
 
 ## Part F: Optional - durability test
 
 While TXN-B is waiting for review (after Terminal 3 starts but before Terminal 4 submits), kill the Compliance worker in Terminal 1 with Ctrl-C. Wait a few seconds. Restart it with the same command. Then submit the review in Terminal 4.
 
 The review still gets through. The handler workflow resumes from where it stopped, processes the Update, and the Payment workflow completes. This is durability across the Nexus boundary: the compliance side can crash and recover without the payments side noticing.
+
+## A note on Workflow ID design
+
+Both payment and compliance workflows in this chapter use a chapter-prefixed, business-meaningful ID — `payment-ch06-TXN-B` and `compliance-ch06-TXN-B`. The `ch06-` prefix exists purely to prevent cross-chapter contamination: all chapters run the same three transaction IDs (TXN-A, TXN-B, TXN-C) in the same namespaces, so without a prefix a stuck `payment-TXN-B` from this chapter would block the same ID in the next chapter.
+
+No random suffix is added. Temporal's best practice is to use stable, business-meaningful workflow IDs because they act as idempotency keys: if the starter is retried for the same transaction, the running or completed workflow is found by ID rather than a duplicate being created. The `review_starter.py` is the one exception — its `ReviewCallerWorkflow` is a short-lived trigger that you may run multiple times for the same TXN-B, so it appends a UUID to avoid `WorkflowAlreadyStartedError` on repeat runs.
+
+The `submit_review` handler depends on this stability: it constructs `compliance-ch06-{input.transaction_id}` from the transaction ID in the `ReviewRequest` to look up the running `ComplianceWorkflow`. A random suffix would make that lookup impossible.
+
+**Re-running this chapter:** because IDs are stable, running `payments.starter` a second time while TXN-B is still blocked will return a `WorkflowAlreadyStartedError`. Either submit the review first, or restart the dev server for a clean namespace before re-running.
 
 ## Take Aways
 

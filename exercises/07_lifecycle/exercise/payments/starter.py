@@ -31,7 +31,7 @@ async def main() -> None:
     ]
 
     for txn in transactions:
-        workflow_id = f"payment-{txn.transaction_id}"
+        workflow_id = f"payment-ch07-{txn.transaction_id}"
 
         print("--------------------------------------------------")
         print(f"  Starting: {workflow_id}")
