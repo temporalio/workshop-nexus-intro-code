@@ -78,7 +78,7 @@ The transactions still run through the Payments worker's local activity, exactly
 
 The handler is an ordinary Python class with a decorator. The worker registers it the same way you would register a workflow or activity.
 
-Nothing happens at the Nexus boundary in this chapter, because the Payments workflow still calls `check_compliance` as a local activity. Chapter 4 swaps that call to use the endpoint that Chapter 2 created.
+Nothing happens at the Nexus boundary in this chapter, because the Payments workflow still calls `check_compliance` as an activity on the same task queue. Chapter 4 swaps that call to use the endpoint that Chapter 2 created.
 
 ## Stop here
 
