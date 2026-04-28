@@ -23,7 +23,6 @@ class ComplianceWorkflow:
 
     @workflow.run
     async def run(self, request: ComplianceRequest) -> ComplianceResult:
-        self._request = request
 
         # Step 1: Run automated compliance check
         self._auto_result = await workflow.execute_activity(
