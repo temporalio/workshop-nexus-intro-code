@@ -8,6 +8,8 @@ with workflow.unsafe.imports_passed_through():
     from payments.activities import execute_payment, validate_payment
     from payments.models import PaymentRequest, PaymentResult
     from shared.service import ComplianceNexusService
+    # TODO 12a: Import the request type the new ReviewCallerWorkflow below will accept.
+    # See the README.
 
 NEXUS_ENDPOINT = "compliance-endpoint"
 
@@ -116,5 +118,6 @@ class PaymentProcessingWorkflow:
         )
 
 
-# TODO 12 (Chapter 6, Part C): Add a `ReviewCallerWorkflow` class below, and add
-# `from shared.models import ReviewRequest` to the `imports_passed_through` block above.
+# TODO 12b: Add a `ReviewCallerWorkflow` class below. It is a one-method workflow
+# that creates a Nexus client and calls submit_review on the Compliance team's
+# Service. See the README for the full code.

@@ -12,7 +12,9 @@ async def main() -> None:
     """Compliance team's worker - hosts ComplianceWorkflow + check_compliance activity + Nexus handler."""
     client = await Client.connect("localhost:7233", namespace=NAMESPACE)
 
-    # TODO 8 (Chapter 5, Part C): Register ComplianceWorkflow and check_compliance on the worker.
+    # TODO 8: Register ComplianceWorkflow and the check_compliance activity on this
+    # Worker alongside the existing Nexus service handler, and supply an executor for
+    # the sync activity. See the assignment for the wrapping pattern.
     worker = Worker(
         client,
         task_queue=TASK_QUEUE,

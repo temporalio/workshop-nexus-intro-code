@@ -1,4 +1,6 @@
-import nexusrpc
+# TODO 13a: Add `import nexusrpc` directly above the `import nexusrpc.handler` line below.
+# The branches you add in TODO 13b raise nexusrpc.OperationError and nexusrpc.HandlerError,
+# so the top-level package must be in scope.
 import nexusrpc.handler
 from temporalio import nexus
 from temporalio.client import WorkflowHandle
@@ -22,7 +24,10 @@ class ComplianceNexusServiceHandler:
     async def check_compliance(
         self, ctx: nexus.WorkflowRunOperationContext, input: ComplianceRequest
     ) -> nexus.WorkflowHandle[ComplianceResult]:
-        # TODO 13 (Chapter 7, Part A): Add the failure-injection branches before start_workflow.
+        # TODO 13b: Add three failure-injection branches before start_workflow.
+        # Match transaction-id prefixes (TXN-FAIL-NONRETRY, TXN-FAIL-RETRY, TXN-CIRCUIT)
+        # and raise the matching nexusrpc.OperationError or nexusrpc.HandlerError.
+        # See the README for the full code.
 
         # USE_EXISTING makes the handler idempotent on retry: a retried Nexus
         # start request for the same transaction returns a handle to the

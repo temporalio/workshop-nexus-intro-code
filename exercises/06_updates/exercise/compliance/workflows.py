@@ -18,7 +18,7 @@ class ComplianceWorkflow:
     def __init__(self) -> None:
         self._request: ComplianceRequest | None = None
         self._auto_result: ComplianceResult | None = None
-        # TODO 10 (Chapter 6, Part A): Add the @workflow.update review path with validator.
+        # TODO 10a: Add a third instance variable, _review_result, for the human-reviewer outcome.
 
     @workflow.run
     async def run(self, request: ComplianceRequest) -> ComplianceResult:
@@ -28,5 +28,11 @@ class ComplianceWorkflow:
             request,
             start_to_close_timeout=timedelta(seconds=30),
         )
-        return self._auto_result
+        # TODO 10b: Branch on the auto-check's risk level. LOW and HIGH should return
+        # the automated result immediately; MEDIUM should pause until a human review
+        # arrives, then return that reviewer's outcome. See the README for the body.
+        pass
 
+    # TODO 10c: Below this line, add the human-review Update entry point and its
+    # validator so reviewers can submit a decision into a paused MEDIUM workflow.
+    # See the README for the full code.

@@ -4,6 +4,7 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
+    # TODO 4a: After TODO 4b, this import is no longer used. Remove it.
     from compliance.activities import check_compliance
     from compliance.models import ComplianceRequest, ComplianceResult
     from payments.activities import execute_payment, validate_payment
@@ -17,7 +18,7 @@ class PaymentProcessingWorkflow:
     """Starting point for Ch 4: compliance check is still a local activity.
 
     Step 1: validate_payment   (Payments team)
-    Step 2: check_compliance   (Compliance team) - will become Nexus in TODO 4
+    Step 2: check_compliance   (Compliance team) - will become Nexus in TODO 4b
     Step 3: execute_payment    (Payments team)
 
     Error model: activity, child-workflow, and Nexus operation failures are allowed
@@ -61,7 +62,7 @@ class PaymentProcessingWorkflow:
             f"Step 2: calling compliance check for {request.transaction_id}"
         )
 
-        # TODO 4 (Chapter 4, Part A): Replace this activity call with a Nexus call.
+        # TODO 4b: Replace this activity call with a Nexus call. See the README for the full code.
         compliance: ComplianceResult = await workflow.execute_activity(
             check_compliance,
             comp_req,

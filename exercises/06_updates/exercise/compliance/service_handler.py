@@ -2,6 +2,9 @@ import nexusrpc.handler
 from temporalio import nexus
 from temporalio.common import WorkflowIDConflictPolicy
 
+# TODO 11a: Add the import the submit_review body below needs to type the workflow
+# handle returned by the Temporal client. See the README.
+
 from compliance.models import ComplianceRequest, ComplianceResult
 from compliance.workflows import ComplianceWorkflow
 from shared.models import ReviewRequest
@@ -30,9 +33,6 @@ class ComplianceNexusServiceHandler:
     async def submit_review(
         self, ctx: nexusrpc.handler.StartOperationContext, input: ReviewRequest
     ) -> ComplianceResult:
-        # TODO 11 (Chapter 6, Part B): replace this stub with a real Update sender.
-        # Use nexus.client().get_workflow_handle_for(...).execute_update(...) - see README.
-        # You will also need: from temporalio.client import WorkflowHandle
-        raise NotImplementedError(
-            "submit_review: see Chapter 6 README Part B"
-        )
+        # TODO 11b: Replace this stub with a real Update sender that finds the running
+        # ComplianceWorkflow by id and sends it the `review` Update. See the README.
+        pass

@@ -23,5 +23,5 @@ class ComplianceWorkflow:
     @workflow.run
     async def run(self, request: ComplianceRequest) -> ComplianceResult:
         self._request = request
-        # TODO 6 (Chapter 5, Part A): Implement ComplianceWorkflow.run (run the activity, return the result).
-        raise NotImplementedError("TODO 6: see the chapter README")
+        # TODO 6: Run the check_compliance activity and return its result.
+        pass

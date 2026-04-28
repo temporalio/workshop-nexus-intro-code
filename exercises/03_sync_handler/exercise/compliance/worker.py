@@ -15,12 +15,12 @@ async def main() -> None:
     worker = Worker(
         client,
         task_queue=TASK_QUEUE,
-        # TODO 3 (Chapter 3, Part B): uncomment the line below to register the handler.
-        # nexus_service_handlers=[ComplianceNexusServiceHandler()],
+        # TODO 3: Register the Nexus service handler on this Worker so it can serve operations on this task queue.
     )
     print("=========================================================")
     print(f"  Compliance Worker started on: {TASK_QUEUE}")
     print(f"  Namespace: {NAMESPACE}")
+    print("  Registered: ComplianceNexusServiceHandler (sync only)")
     print("=========================================================")
     await worker.run()
 

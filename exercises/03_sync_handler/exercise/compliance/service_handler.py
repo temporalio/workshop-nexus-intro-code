@@ -5,11 +5,7 @@ from compliance.models import ComplianceRequest, ComplianceResult
 from shared.models import ReviewRequest
 from shared.service import ComplianceNexusService
 
-# TODO 2 (Chapter 3, Part A): add @nexusrpc.handler.service_handler(service=...)
-# above the class, decorate both methods with @nexusrpc.handler.sync_operation,
-# and replace each method body as shown in the README.
-#
-# @nexusrpc.handler.service_handler(service=ComplianceNexusService)
+# TODO 2a: Bind this class to the ComplianceNexusService contract so it counts as a service handler.
 class ComplianceNexusServiceHandler:
     """Nexus service handler with synchronous operations.
 
@@ -17,16 +13,14 @@ class ComplianceNexusServiceHandler:
     submit_review: stub. Will be implemented in Ch 6 once we have a workflow to update.
     """
 
-    # @nexusrpc.handler.sync_operation
+    # TODO 2b: Mark this method as a synchronous Nexus operation handler and return the rule-based check result.
     async def check_compliance(
         self, ctx: nexusrpc.handler.StartOperationContext, input: ComplianceRequest
     ) -> ComplianceResult:
-        # Replace with: return _check_compliance(input)
-        raise NotImplementedError("TODO 2: see Chapter 3 README Part A")
+        pass
 
-    # @nexusrpc.handler.sync_operation
+    # TODO 2c: Mark this method as a synchronous Nexus operation handler and stub it out (real impl arrives in Ch 6).
     async def submit_review(
         self, ctx: nexusrpc.handler.StartOperationContext, input: ReviewRequest
     ) -> ComplianceResult:
-        # Replace with the NotImplementedError stub shown in the README.
-        raise NotImplementedError("TODO 2: see Chapter 3 README Part A")
+        pass

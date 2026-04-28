@@ -2,6 +2,7 @@ import nexusrpc.handler
 from temporalio import nexus
 from temporalio.common import WorkflowIDConflictPolicy
 
+# TODO 7b: After converting check_compliance to async, this import is no longer used. Remove it.
 from compliance.activities import check_compliance as _check_compliance
 from compliance.models import ComplianceRequest, ComplianceResult
 from compliance.workflows import ComplianceWorkflow
@@ -16,7 +17,9 @@ class ComplianceNexusServiceHandler:
     Ch 6: submit_review becomes a real sync handler that sends a Workflow Update.
     """
 
-    # TODO 7 (Chapter 5, Part B): Convert check_compliance to @nexus.workflow_run_operation.
+    # TODO 7a: Convert this sync handler to a workflow-backed async handler.
+    # Replace the decorator, context type, return type, and body so that this
+    # handler starts a ComplianceWorkflow and returns its handle.
     @nexusrpc.handler.sync_operation
     async def check_compliance(
         self, ctx: nexusrpc.handler.StartOperationContext, input: ComplianceRequest

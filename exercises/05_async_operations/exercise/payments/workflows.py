@@ -64,7 +64,7 @@ class PaymentProcessingWorkflow:
             service=ComplianceNexusService,
             endpoint=NEXUS_ENDPOINT,
         )
-        # TODO 9 (Chapter 5, Part D): Add schedule_to_start_timeout and start_to_close_timeout.
+        # TODO 9: Add `schedule_to_start_timeout` and `start_to_close_timeout` to this call.
         compliance: ComplianceResult = await nexus_client.execute_operation(
             ComplianceNexusService.check_compliance,
             comp_req,

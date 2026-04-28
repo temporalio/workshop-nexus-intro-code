@@ -4,6 +4,7 @@ import concurrent.futures
 from temporalio.client import Client
 from temporalio.worker import Worker
 
+# TODO 5a: Remove this import. After TODO 4, the workflow no longer calls check_compliance directly.
 from compliance.activities import check_compliance
 from payments.activities import execute_payment, validate_payment
 from payments.models import TASK_QUEUE
@@ -20,7 +21,7 @@ async def main() -> None:
             client,
             task_queue=TASK_QUEUE,
             workflows=[PaymentProcessingWorkflow],
-            # TODO 5 (Chapter 4, Part B): Remove check_compliance from the activities list and the import above.
+            # TODO 5b: Remove check_compliance from the activities list. The Payments Worker no longer runs it.
             activities=[validate_payment, execute_payment, check_compliance],
             activity_executor=executor,
         )
