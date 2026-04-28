@@ -15,8 +15,9 @@ class ComplianceWorkflow:
     MEDIUM    -> pauses, waits for review() Update
     """
 
-    def __init__(self) -> None:
-        self._request: ComplianceRequest | None = None
+    @workflow.init
+    def __init__(self, request: ComplianceRequest) -> None:
+        self._request: ComplianceRequest = request
         self._auto_result: ComplianceResult | None = None
         self._review_result: ComplianceResult | None = None
 
