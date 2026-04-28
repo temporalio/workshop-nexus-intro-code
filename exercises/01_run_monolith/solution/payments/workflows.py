@@ -3,11 +3,10 @@ from datetime import timedelta
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 
-with workflow.unsafe.imports_passed_through():
-    from compliance.activities import check_compliance
-    from compliance.models import ComplianceRequest, ComplianceResult
-    from payments.activities import execute_payment, validate_payment
-    from payments.models import PaymentRequest, PaymentResult
+from compliance.activities import check_compliance
+from compliance.models import ComplianceRequest, ComplianceResult
+from payments.activities import execute_payment, validate_payment
+from payments.models import PaymentRequest, PaymentResult
 
 @workflow.defn
 class PaymentProcessingWorkflow:
