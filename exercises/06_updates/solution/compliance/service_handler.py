@@ -36,7 +36,7 @@ class ComplianceNexusServiceHandler:
         # execute_update returns the same ComplianceResult the workflow's review()
         # method returns, and the Nexus operation forwards it to the caller.
         client = nexus.client()
-        handle: WorkflowHandle = client.get_workflow_handle_for(
+        handle: WorkflowHandle[ComplianceWorkflow, ComplianceResult] = client.get_workflow_handle_for(
             ComplianceWorkflow.run,
             workflow_id=f"compliance-{input.transaction_id}",
         )
