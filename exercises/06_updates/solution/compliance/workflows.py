@@ -2,9 +2,8 @@ from datetime import timedelta
 
 from temporalio import workflow
 
-with workflow.unsafe.imports_passed_through():
-    from compliance.activities import check_compliance
-    from compliance.models import ComplianceRequest, ComplianceResult
+from compliance.activities import check_compliance
+from compliance.models import ComplianceRequest, ComplianceResult
 
 @workflow.defn
 class ComplianceWorkflow:
