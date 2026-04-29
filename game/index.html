@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Nexus Chaos — Workshop Sandbox</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #131a31;
+    --panel-2: #1a2240;
+    --line: #2a3360;
+    --text: #e6e9f5;
+    --muted: #8a93b3;
+    --ok: #4ade80;
+    --warn: #facc15;
+    --bad: #f87171;
+    --info: #60a5fa;
+    --accent: #a78bfa;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: radial-gradient(1200px 600px at 20% -10%, #1a2350 0%, var(--bg) 60%) fixed;
+    color: var(--text);
+    font: 13px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+    overflow: hidden;
+  }
+  header {
+    height: 44px;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: baseline; gap: 14px;
+  }
+  header h1 { font-size: 16px; margin: 0; letter-spacing: .3px; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  main {
+    height: calc(100vh - 45px);
+    padding: 12px;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 12px;
+    overflow: hidden;
+  }
+  .col { display: flex; flex-direction: column; gap: 12px; min-height: 0; min-width: 0; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .panel h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted);
+    margin: 0 0 10px;
+    font-weight: 600;
+  }
+
+  /* Topology */
+  .topology {
+    display: grid;
+    grid-template-columns: 1fr 100px 1fr 100px 1fr;
+    align-items: center;
+    gap: 10px;
+  }
+  .service {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    transition: border-color .2s, box-shadow .2s, opacity .2s;
+  }
+  .service.up { border-color: #1f6f3f; box-shadow: 0 0 0 1px rgba(74,222,128,.15) inset; }
+  .service.down { border-color: #6f1f1f; opacity: .6; }
+  .service .name { font-weight: 600; font-size: 14px; }
+  .service .role { color: var(--muted); font-size: 11px; margin-top: 4px; line-height: 1.4; }
+  .service .status {
+    display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--bad); margin-right: 6px; vertical-align: middle;
+  }
+  .service.up .status { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .service button {
+    margin-top: 10px;
+    background: transparent; color: var(--text);
+    border: 1px solid var(--line); padding: 6px 14px;
+    border-radius: 6px; cursor: pointer; font-size: 12px;
+    font-weight: 600; letter-spacing: .5px;
+  }
+  .service button:hover { background: var(--panel); }
+  .service.down button { color: var(--ok); border-color: #1f6f3f; }
+  .service.up button { color: var(--bad); border-color: #6f1f1f; }
+  .wire {
+    height: 2px; background: var(--line); position: relative; overflow: hidden; border-radius: 2px;
+  }
+  .wire .dot {
+    position: absolute; top: -3px; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--info); box-shadow: 0 0 10px var(--info);
+    animation: travel 1.6s linear infinite;
+  }
+  .wire.reverse .dot { animation-direction: reverse; }
+  .wire.dead .dot { display: none; }
+  @keyframes travel { from { left: -8px; } to { left: 100%; } }
+
+  /* Score row */
+  .score-row { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 10px; align-items: center; }
+  .score {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .score .v { font-size: 22px; font-weight: 700; line-height: 1; }
+  .score .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .score.ok .v { color: var(--ok); }
+  .score.warn .v { color: var(--warn); }
+  .score.bad .v { color: var(--bad); }
+  .score.info .v { color: var(--info); }
+  .controls { display: flex; gap: 8px; }
+  .controls button {
+    background: var(--accent); color: #0b1020; border: 0; padding: 8px 14px;
+    border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;
+  }
+  .controls button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); font-weight: 500; }
+
+  /* In-flight workflows — fills remaining space */
+  .wf-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .workflows { flex: 1; min-height: 0; overflow-y: auto; }
+  .wf {
+    display: grid;
+    grid-template-columns: 180px 1fr 140px;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+  }
+  .wf:last-child { border-bottom: 0; }
+  .wf .id { color: var(--accent); }
+  .wf .amt { color: var(--muted); margin-left: 6px; }
+  .steps { display: grid; grid-template-columns: 1fr 14px 1fr 14px 1fr; align-items: center; gap: 6px; }
+  .step {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 8px; text-align: center; font-size: 11px; transition: all .2s;
+    line-height: 1.2;
+  }
+  .step .lbl { display: block; font-size: 9px; color: var(--muted); letter-spacing: .8px; margin-bottom: 2px; }
+  .step.pending { color: var(--muted); }
+  .step.running { color: var(--info); border-color: var(--info); box-shadow: 0 0 0 1px var(--info) inset; }
+  .step.blocked { color: var(--warn); border-color: var(--warn); animation: pulse 1.2s ease-in-out infinite; }
+  .step.done { color: var(--ok); border-color: #1f6f3f; }
+  .step.failed { color: var(--bad); border-color: var(--bad); }
+  .arrow { color: var(--muted); text-align: center; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 1px var(--warn) inset; }
+    50% { box-shadow: 0 0 12px var(--warn) inset; }
+  }
+  .wf .final { font-weight: 600; text-align: right; font-size: 12px; }
+  .wf .final.completed { color: var(--ok); }
+  .wf .final.declined { color: var(--warn); }
+  .wf .final.running { color: var(--info); }
+  .wf .final.blocked { color: var(--warn); }
+
+  /* Event log */
+  .log-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .log {
+    flex: 1; min-height: 0; overflow-y: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px;
+  }
+  .log .row { padding: 3px 0; border-bottom: 1px dashed #1f274a; color: var(--muted); }
+  .log .row .t { color: #555a78; margin-right: 6px; }
+  .log .row .id { color: var(--accent); margin-right: 6px; }
+  .log .row.evt-info { color: var(--text); }
+  .log .row.evt-nexus { color: var(--info); }
+  .log .row.evt-warn { color: var(--warn); }
+  .log .row.evt-bad { color: var(--bad); }
+  .log .row.evt-ok { color: var(--ok); }
+  .log .row.evt-chaos { color: var(--accent); font-weight: 600; }
+
+  .legend { color: var(--muted); font-size: 11px; margin-top: 10px; line-height: 1.5; }
+  .legend code { background: var(--panel-2); padding: 1px 5px; border-radius: 3px; color: var(--text); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Nexus Chaos — Sandbox</h1>
+  <span class="sub">Stop services. Watch workflows wait, not die. <code style="background:var(--panel-2);padding:1px 5px;border-radius:3px;color:var(--text)">PaymentProcessingWorkflow</code> over Nexus endpoint <code style="background:var(--panel-2);padding:1px 5px;border-radius:3px;color:var(--text)">compliance-endpoint</code>.</span>
+</header>
+<main>
+  <div class="col">
+    <!-- Topology -->
+    <div class="panel">
+      <h2>Topology</h2>
+      <div class="topology">
+        <div class="service up" id="svc-payments">
+          <div><span class="status"></span><span class="name">Payments Worker</span></div>
+          <div class="role">activities: validate_payment, execute_payment</div>
+          <button data-svc="payments">Stop</button>
+        </div>
+        <div class="wire" id="wire-1"><div class="dot"></div></div>
+        <div class="service up" id="svc-nexus">
+          <div><span class="status"></span><span class="name">Nexus Endpoint</span></div>
+          <div class="role">compliance-endpoint</div>
+          <button data-svc="nexus">Stop</button>
+        </div>
+        <div class="wire reverse" id="wire-2"><div class="dot"></div></div>
+        <div class="service up" id="svc-compliance">
+          <div><span class="status"></span><span class="name">Compliance Worker</span></div>
+          <div class="role">async op: check_compliance</div>
+          <button data-svc="compliance">Stop</button>
+        </div>
+      </div>
+      <div class="legend">
+        Stop a service to observe how each step reacts. Async Nexus operations <em>pend</em> when the handler is down — they don't fail. Activities pause when their worker is down. Nothing is lost.
+      </div>
+    </div>
+
+    <!-- Score + controls -->
+    <div class="panel">
+      <h2>Score</h2>
+      <div class="score-row">
+        <div class="score ok"><div class="k">Completed</div><div class="v" id="m-completed">0</div></div>
+        <div class="score warn"><div class="k">Declined</div><div class="v" id="m-declined">0</div></div>
+        <div class="score info"><div class="k">In Flight</div><div class="v" id="m-running">0</div></div>
+        <div class="score warn"><div class="k">Blocked</div><div class="v" id="m-blocked">0</div></div>
+        <div class="score bad"><div class="k">Lost</div><div class="v" id="m-lost">0</div></div>
+        <div class="controls">
+          <button id="btn-spawn">+ Order</button>
+          <button class="ghost" id="btn-auto">Auto: ON</button>
+          <button class="ghost" id="btn-reset">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workflows in flight -->
+    <div class="panel wf-panel">
+      <h2>Workflows In Flight</h2>
+      <div class="workflows" id="workflows"></div>
+    </div>
+  </div>
+
+  <!-- Event log -->
+  <div class="col">
+    <div class="panel log-panel">
+      <h2>Event History</h2>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+(() => {
+  const services = {
+    payments:   { up: true, label: "PaymentsWorker" },
+    nexus:      { up: true, label: "NexusEndpoint" },
+    compliance: { up: true, label: "ComplianceWorker" },
+  };
+
+  const workflows = new Map();
+  let nextId = 1001;
+  let lastTs = Date.now();
+  let auto = true;
+  let autoTimer = null;
+  const counters = { completed: 0, declined: 0, lost: 0 };
+
+  const $ = (id) => document.getElementById(id);
+  const log = $("log");
+  const wfList = $("workflows");
+
+  function fmtTs() {
+    const d = new Date();
+    return d.toTimeString().slice(0, 8) + "." + String(d.getMilliseconds()).padStart(3, "0");
+  }
+  function logEvent(kind, id, msg) {
+    const row = document.createElement("div");
+    row.className = "row evt-" + kind;
+    row.innerHTML = `<span class="t">${fmtTs()}</span>` +
+                    (id ? `<span class="id">${id}</span>` : "") +
+                    `<span>${msg}</span>`;
+    log.prepend(row);
+    while (log.children.length > 250) log.removeChild(log.lastChild);
+  }
+  function fmtMoney(n) { return "$" + n.toLocaleString(); }
+
+  // ---------- Service control ----------
+  function setService(name, up) {
+    services[name].up = up;
+    const el = $("svc-" + name);
+    el.classList.toggle("up", up);
+    el.classList.toggle("down", !up);
+    el.querySelector("button").textContent = up ? "Stop" : "Start";
+    logEvent("chaos", null, `${services[name].label} ${up ? "STARTED" : "STOPPED"}`);
+    updateWires();
+    if (up) for (const wf of workflows.values()) tickWorkflow(wf);
+  }
+
+  function updateWires() {
+    $("wire-1").classList.toggle("dead", !services.payments.up || !services.nexus.up);
+    $("wire-2").classList.toggle("dead", !services.nexus.up || !services.compliance.up);
+  }
+
+  document.querySelectorAll(".service button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const svc = btn.dataset.svc;
+      setService(svc, !services[svc].up);
+    });
+  });
+
+  // ---------- Workflow lifecycle ----------
+  // Steps:
+  //   1. validate_payment (activity, payments worker)
+  //   2. compliance via Nexus async op (compliance worker; nexus endpoint to schedule)
+  //   3. execute_payment (activity, payments worker)
+  function spawnWorkflow() {
+    const id = "tx-" + (nextId++);
+    const amount = Math.floor(50 + Math.random() * 9950);
+    const willDecline = Math.random() < 0.15;
+    const wf = {
+      id, amount, willDecline,
+      step: 1,
+      status: "running",
+      stepProgress: 0,
+      stepDuration: 0,
+      stepStartedAt: 0,
+      stepStates: ["pending", "pending", "pending"],
+      el: null,
+    };
+    workflows.set(id, wf);
+    renderWorkflow(wf);
+    logEvent("info", id, `WorkflowExecutionStarted (PaymentRequest amount=${fmtMoney(amount)})`);
+    beginStep(wf, 1);
+  }
+
+  function beginStep(wf, step) {
+    wf.step = step;
+    wf.stepProgress = 0;
+    wf.stepStartedAt = Date.now();
+    if (step === 1) {
+      wf.stepDuration = 1400 + Math.random() * 700;
+      wf.stepStates[0] = "running";
+      logEvent("info", wf.id, "ActivityTaskScheduled (validate_payment)");
+    } else if (step === 2) {
+      wf.stepDuration = 2400 + Math.random() * 1500;
+      wf.stepStates[1] = "running";
+      wf.nexusPhase = "scheduling";
+      logEvent("nexus", wf.id, "NexusOperationScheduled (compliance-endpoint::check_compliance)");
+    } else if (step === 3) {
+      wf.stepDuration = 1100 + Math.random() * 600;
+      wf.stepStates[2] = "running";
+      logEvent("info", wf.id, "ActivityTaskScheduled (execute_payment)");
+    }
+    renderWorkflow(wf);
+  }
+
+  function finishStep(wf, step) {
+    wf.stepStates[step - 1] = "done";
+    if (step === 1) {
+      logEvent("ok", wf.id, "ActivityTaskCompleted (validate_payment) → valid=true");
+      beginStep(wf, 2);
+    } else if (step === 2) {
+      if (wf.willDecline) {
+        logEvent("warn", wf.id, "NexusOperationCompleted → DECLINED_COMPLIANCE (HIGH risk)");
+        wf.status = "declined";
+        wf.stepStates[2] = "failed";
+        counters.declined++;
+        endWorkflow(wf);
+      } else {
+        logEvent("ok", wf.id, "NexusOperationCompleted → APPROVED");
+        beginStep(wf, 3);
+      }
+    } else if (step === 3) {
+      logEvent("ok", wf.id, "ActivityTaskCompleted (execute_payment)");
+      logEvent("ok", wf.id, "WorkflowExecutionCompleted → PaymentResult(success=True)");
+      wf.status = "completed";
+      counters.completed++;
+      endWorkflow(wf);
+    }
+    renderWorkflow(wf);
+  }
+
+  function endWorkflow(wf) {
+    setTimeout(() => {
+      workflows.delete(wf.id);
+      if (wf.el) wf.el.remove();
+      updateMetrics();
+    }, 2500);
+  }
+
+  function tickWorkflow(wf) {
+    if (wf.status !== "running") return;
+    const now = Date.now();
+    const dt = now - lastTs;
+
+    let blocked = false;
+    if (wf.step === 1 || wf.step === 3) {
+      blocked = !services.payments.up;
+      wf.stepStates[wf.step - 1] = blocked ? "blocked" : "running";
+    } else if (wf.step === 2) {
+      if (wf.nexusPhase === "scheduling") {
+        if (!services.nexus.up) {
+          blocked = true;
+        } else if (!services.compliance.up) {
+          blocked = true;
+          if (wf._loggedPending !== "scheduled") {
+            logEvent("warn", wf.id, "NexusOperation pending — handler service unavailable");
+            wf._loggedPending = "scheduled";
+          }
+        } else {
+          wf.nexusPhase = "started";
+          logEvent("nexus", wf.id, "NexusOperationStarted (handler workflow running on compliance)");
+        }
+      } else if (wf.nexusPhase === "started") {
+        if (!services.compliance.up) {
+          blocked = true;
+          if (wf._loggedPending !== "started") {
+            logEvent("warn", wf.id, "Compliance handler workflow paused — no worker polling");
+            wf._loggedPending = "started";
+          }
+        }
+      }
+      wf.stepStates[1] = blocked ? "blocked" : "running";
+    }
+
+    if (!blocked) {
+      wf.stepProgress += dt / wf.stepDuration;
+      if (wf.stepProgress >= 1) {
+        finishStep(wf, wf.step);
+        return;
+      }
+    }
+    renderWorkflow(wf);
+  }
+
+  // ---------- Rendering ----------
+  function renderWorkflow(wf) {
+    if (!wf.el) {
+      const el = document.createElement("div");
+      el.className = "wf";
+      el.innerHTML = `
+        <div><span class="id">${wf.id}</span><span class="amt">${fmtMoney(wf.amount)}</span></div>
+        <div class="steps">
+          <div class="step" data-step="0"><span class="lbl">STEP 1</span>validate_payment</div>
+          <div class="arrow">→</div>
+          <div class="step" data-step="1"><span class="lbl">STEP 2 · NEXUS</span>check_compliance</div>
+          <div class="arrow">→</div>
+          <div class="step" data-step="2"><span class="lbl">STEP 3</span>execute_payment</div>
+        </div>
+        <div class="final running">running…</div>
+      `;
+      wfList.prepend(el);
+      wf.el = el;
+    }
+    const stepEls = wf.el.querySelectorAll(".step");
+    stepEls.forEach((s, i) => {
+      // preserve label spans by toggling class only
+      s.className = "step " + wf.stepStates[i];
+    });
+    const final = wf.el.querySelector(".final");
+    final.className = "final " + wf.status;
+    final.textContent =
+      wf.status === "running" ? "running…" :
+      wf.status === "completed" ? "✓ COMPLETED" :
+      wf.status === "declined" ? "⌀ DECLINED" : wf.status;
+  }
+
+  function updateMetrics() {
+    let running = 0, blocked = 0;
+    for (const wf of workflows.values()) {
+      if (wf.status !== "running") continue;
+      running++;
+      const idx = wf.step - 1;
+      if (wf.stepStates[idx] === "blocked") blocked++;
+    }
+    $("m-running").textContent = running;
+    $("m-blocked").textContent = blocked;
+    $("m-completed").textContent = counters.completed;
+    $("m-declined").textContent = counters.declined;
+    $("m-lost").textContent = counters.lost;
+  }
+
+  // ---------- Loop ----------
+  function frame() {
+    const now = Date.now();
+    for (const wf of workflows.values()) tickWorkflow(wf);
+    lastTs = now;
+    updateMetrics();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- Controls ----------
+  function startAuto() {
+    if (autoTimer) clearInterval(autoTimer);
+    autoTimer = setInterval(() => {
+      if (workflows.size < 14) spawnWorkflow();
+    }, 1800);
+  }
+  function stopAuto() { if (autoTimer) clearInterval(autoTimer); autoTimer = null; }
+
+  $("btn-spawn").addEventListener("click", spawnWorkflow);
+  $("btn-auto").addEventListener("click", () => {
+    auto = !auto;
+    $("btn-auto").textContent = "Auto: " + (auto ? "ON" : "OFF");
+    if (auto) startAuto(); else stopAuto();
+  });
+  $("btn-reset").addEventListener("click", () => {
+    workflows.clear();
+    wfList.innerHTML = "";
+    log.innerHTML = "";
+    counters.completed = counters.declined = counters.lost = 0;
+    Object.keys(services).forEach(s => { if (!services[s].up) setService(s, true); });
+    updateMetrics();
+    logEvent("info", null, "Sandbox reset.");
+  });
+
+  // boot
+  startAuto();
+  spawnWorkflow();
+  spawnWorkflow();
+  logEvent("info", null, "Sandbox booted. Try stopping the Compliance Worker mid-flight.");
+})();
+</script>
+</body>
+</html>
