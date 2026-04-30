@@ -10,7 +10,7 @@ class ComplianceNexusServiceHandler:
     """Nexus service handler with synchronous operations.
 
     check_compliance runs the rule-based checker directly and returns the result.
-    submit_review is a stub. Ch 5 introduces the workflow it will Update; Ch 6 fills it in.
+    submit_review is a stub; it gains a real implementation later in the workshop.
     """
 
     @nexusrpc.handler.sync_operation
@@ -27,9 +27,9 @@ class ComplianceNexusServiceHandler:
     async def submit_review(
         self, ctx: nexusrpc.handler.StartOperationContext, input: ReviewRequest
     ) -> ComplianceResult:
-        # In Ch 6, this will use the Temporal Client to send a Workflow Update
-        # to the running ComplianceWorkflow. For now this path is unreachable
-        # because no caller invokes submit_review yet.
+        # Later in the workshop this will use the Temporal Client to send a
+        # Workflow Update to the running ComplianceWorkflow. For now this path
+        # is unreachable because no caller invokes submit_review yet.
         raise NotImplementedError(
-            "submit_review needs a workflow to send Updates to (the workflow is introduced in Ch 5; submit_review is implemented in Ch 6)"
+            "submit_review is a stub; it gains a real implementation later in the workshop"
         )

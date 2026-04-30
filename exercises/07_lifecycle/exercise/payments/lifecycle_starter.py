@@ -81,7 +81,8 @@ async def scenario_retryable(client: Client) -> None:
 
 async def scenario_cancellation(client: Client) -> None:
     banner("Scenario C: caller-driven cancellation")
-    print("  Starting payment-ch07-TXN-CANCEL-1 ($12,000 international = MEDIUM risk).")
+    print("  Starting payment-ch07-TXN-CANCEL-1 ($12,000, MEDIUM risk via the")
+    print("  amount-above-$10K rule arm; the request body is domestic US-to-US).")
     print("  ComplianceWorkflow classifies the risk as MEDIUM, sleeps 10 seconds,")
     print("  then waits for a human-review Update. We cancel the payment workflow")
     print("  during that pause and the cancellation propagates through the Nexus")
@@ -142,11 +143,24 @@ async def scenario_circuit_breaker(client: Client) -> None:
         except Exception:
             pass
 
+async def pause_for_inspection(scenario: str) -> None:
+    """Pause until the attendee presses Enter, so they can run
+    `temporal workflow describe` without the next scenario stepping on
+    the workflow they're inspecting.
+    """
+    print()
+    print(f"  Scenario {scenario} done. Inspect the workflow above when you")
+    print(f"  are ready, then press Enter to continue to the next scenario.")
+    await asyncio.to_thread(input, "")
+
 async def main() -> None:
     client = await Client.connect("localhost:7233", namespace=NAMESPACE)
     await scenario_non_retryable(client)
+    await pause_for_inspection("A")
     await scenario_retryable(client)
+    await pause_for_inspection("B")
     await scenario_cancellation(client)
+    await pause_for_inspection("C")
     await scenario_circuit_breaker(client)
     print()
     print("==========================================================")

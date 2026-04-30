@@ -15,14 +15,14 @@ class ComplianceWorkflow:
     MEDIUM    -> pauses, waits for review() Update
     """
 
-    def __init__(self) -> None:
-        self._request: ComplianceRequest | None = None
+    @workflow.init
+    def __init__(self, request: ComplianceRequest) -> None:
+        self._request: ComplianceRequest = request
         self._auto_result: ComplianceResult | None = None
         # TODO 10a: Add a third instance variable, _review_result, for the human-reviewer outcome.
 
     @workflow.run
     async def run(self, request: ComplianceRequest) -> ComplianceResult:
-        self._request = request
         self._auto_result = await workflow.execute_activity(
             check_compliance,
             request,

@@ -58,17 +58,30 @@ public class ComplianceChecker {
             );
         }
 
-        // Rule 3: International transfer > $10K or unusual jurisdiction → MEDIUM risk
+        // Rule 3: Amount > $10K or international to unusual jurisdiction → MEDIUM risk
         boolean isInternational = !request.getSenderCountry().equals(request.getReceiverCountry());
         boolean isUnusualJurisdiction = isInternational
                 && !COMMON_COUNTRIES.contains(request.getReceiverCountry());
 
         if (request.getAmount() > 10000 || isUnusualJurisdiction) {
+            // Branch the explanation by which arm fired so the result tells
+            // an honest story to whoever reads the workflow's output.
+            String explanation;
+            if (request.getAmount() > 10000 && isUnusualJurisdiction) {
+                explanation = "Amount above $10K threshold and international transfer to "
+                        + "unusual jurisdiction (" + request.getReceiverCountry() + "). "
+                        + "Approved with AML monitoring note.";
+            } else if (request.getAmount() > 10000) {
+                explanation = "Amount above $10K threshold. Approved with AML monitoring note.";
+            } else {
+                explanation = "International transfer to unusual jurisdiction ("
+                        + request.getReceiverCountry() + "). Approved with AML monitoring note.";
+            }
             return new ComplianceResult(
                     request.getTransactionId(),
                     true,
                     "MEDIUM",
-                    "International transfer above $10K threshold. Approved with AML monitoring note."
+                    explanation
             );
         }
 

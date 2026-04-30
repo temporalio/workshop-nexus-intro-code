@@ -37,7 +37,7 @@ public class ComplianceNexusServiceImpl {
                     ComplianceWorkflow.class,
                     WorkflowOptions.newBuilder()
                             .setTaskQueue("compliance-risk")
-                            .setWorkflowId("compliance-" + input.getTransactionId())
+                            .setWorkflowId("compliance-ch07-" + input.getTransactionId())
                             .setWorkflowIdConflictPolicy(
                                     WorkflowIdConflictPolicy.WORKFLOW_ID_CONFLICT_POLICY_USE_EXISTING)
                             .build());
@@ -52,7 +52,7 @@ public class ComplianceNexusServiceImpl {
             WorkflowClient client = Nexus.getOperationContext().getWorkflowClient();
             ComplianceWorkflow wf = client.newWorkflowStub(
                     ComplianceWorkflow.class,
-                    "compliance-" + input.getTransactionId());
+                    "compliance-ch07-" + input.getTransactionId());
             return wf.review(input.isApproved(), input.getExplanation());
         });
     }
