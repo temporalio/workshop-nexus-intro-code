@@ -15,6 +15,8 @@ workshop-nexus-intro-code/
 │   ├── 05_async_operations/    Ch 5: Async (workflow-backed) Nexus operations
 │   ├── 06_updates/             Ch 6: Updates through Nexus (human-in-the-loop)
 │   └── 07_lifecycle/           Ch 7: Cancellation, errors, circuit breaker
+├── game/
+│   └── index.html              Standalone topology visualizer (open in a browser)
 └── polyglot/
     └── java-legacy/            Java compliance worker for the polyglot connector demo
 ```
@@ -74,6 +76,21 @@ temporal server start-dev
 ```
 
 The Web UI is at http://localhost:8233. The dev server creates a `default` namespace automatically; that is all Chapter 1 needs. The split namespaces (`payments-namespace`, `compliance-namespace`) and the `compliance-endpoint` Nexus endpoint are created interactively in **Chapter 2**, alongside the contract that uses them - see `exercises/02_service_contract/README.md` Parts B and C.
+
+## Topology sandbox (`game/index.html`)
+
+`game/index.html` is a single-file browser sandbox that visualizes the workshop's Chapter 5+ topology — Payments worker, Nexus endpoint, Compliance worker — with synthetic payments flowing through it. No dependencies, no server, no connection to a real Temporal cluster: open the file in a browser and it runs.
+
+```bash
+open game/index.html        # macOS
+xdg-open game/index.html    # Linux
+```
+
+Click **Stop** on any of the three services and watch in-flight workflows transition to a yellow "blocked" state instead of failing. Restart the service and they resume from where they were. The Event History pane on the right narrates the real Temporal and Nexus event names (`NexusOperationScheduled`, `NexusOperationStarted`, `NexusOperationCompleted`). The `Lost` counter is wired up but never increments — that is the point.
+
+It is an orientation aid, not a debugging tool tied to running code: a preview of the resilient end-state attendees are working toward, and a place to fiddle with chaos scenarios outside of the live lab. The depicted handler is workflow-backed and async (Chapter 5+ shape), so the Chapter 1 monolith and the Chapter 3 sync handler are intentionally not represented.
+
+The day-of student experience for this visualizer lives in Instruqt with a guided talk track; this file is the self-paced version checked into the code repo.
 
 ## Polyglot (Java compliance worker)
 
