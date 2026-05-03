@@ -58,18 +58,12 @@ While you are in the file, delete the now-unused `from compliance.activities imp
 
 ## Part C: Register the workflow + activity on the Compliance worker (TODO 8)
 
-Open `compliance/worker.py`. The Ch 3/4 worker only registered the Nexus handler. Now that the handler starts a workflow and that workflow runs an activity, register both:
+Open `compliance/worker.py`. The `with concurrent.futures.ThreadPoolExecutor(...) as executor:` block, the prints, and `await worker.run()` are already in place. Find the TODO 8 comment and add three arguments to the existing `Worker(...)` call, alongside `task_queue` and `nexus_service_handlers`:
 
 ```python
-with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
-    worker = Worker(
-        client,
-        task_queue=TASK_QUEUE,
-        workflows=[ComplianceWorkflow],
-        activities=[check_compliance],
-        activity_executor=executor,
-        nexus_service_handlers=[ComplianceNexusServiceHandler()],
-    )
+workflows=[ComplianceWorkflow],
+activities=[check_compliance],
+activity_executor=executor,
 ```
 
 The activity is registered as a plain `def` in `compliance/activities.py` (no `async`), so the worker needs an `activity_executor` to run it on a thread. We use a `ThreadPoolExecutor` here, the same pattern the Payments worker uses for its sync activities.
